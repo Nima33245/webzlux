@@ -26,6 +26,9 @@
                             800: '#075985',
                             900: '#0c4a6e',
                         }
+                    },
+                    fontFamily: {
+                        'vazir': ['Vazirmatn', 'system-ui']
                     }
                 }
             }
@@ -40,6 +43,10 @@
     <!-- Custom Styles -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            box-sizing: border-box;
+        }
         
         body {
             font-family: 'Vazirmatn', sans-serif;
@@ -82,11 +89,13 @@
         }
         
         .progress-step.active {
-            @apply bg-primary-500 text-white;
+            background-color: rgb(14, 165, 233);
+            color: white;
         }
         
         .progress-step.completed {
-            @apply bg-green-500 text-white;
+            background-color: rgb(34, 197, 94);
+            color: white;
         }
         
         .log-entry {
@@ -113,11 +122,11 @@
         }
         
         .pwa-check.pass {
-            @apply text-green-500;
+            color: rgb(34, 197, 94);
         }
         
         .pwa-check.fail {
-            @apply text-red-500;
+            color: rgb(239, 68, 68);
         }
         
         .helper-btn {
@@ -125,8 +134,43 @@
         }
         
         .helper-btn:hover {
-            @apply bg-gray-100 dark:bg-gray-700;
+            background-color: rgb(243, 244, 246);
             transform: translateY(-2px);
+        }
+        
+        .dark .helper-btn:hover {
+            background-color: rgb(55, 65, 81);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        .dark ::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background: #6b7280;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
         }
     </style>
 </head>
@@ -475,7 +519,7 @@
                                     <h3 id="previewAppName" class="font-bold text-white truncate">نام اپلیکیشن</h3>
                                 </div>
                                 
-                                <div id="previewContent" class="p-4 h-[calc(100%-4rem)]">
+                                <div id="previewContent" class="p-4 h-[calc(100%-4rem)] relative">
                                     <div class="text-center mt-8">
                                         <div id="previewIconLarge" class="w-24 h-24 mx-auto rounded-xl mb-4 bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                                             <span class="text-3xl font-bold text-primary-600 dark:text-primary-400">A</span>
@@ -564,157 +608,57 @@
             </div>
             
             <div class="bg-gray-800 rounded-xl overflow-hidden">
-                <pre class="text-sm text-gray-200 p-4 overflow-x-auto"><code id="workflowCode">name: Build website into APK (Pro TWA)
+                <pre class="text-sm text-gray-200 p-4 overflow-x-auto"><code id="workflowCode">name: Build APK from PWA
 
 on:
   workflow_dispatch:
     inputs:
       appName:
-        description: 'نام اپ'
+        description: 'نام اپلیکیشن'
         required: true
+        default: 'اپلیکیشن من'
       packageId:
-        description: 'شناسه پکیج اندروید (مثلاً com.example.app)'
+        description: 'شناسه پکیج اندروید'
         required: true
+        default: 'com.example.pwa'
       siteUrl:
-        description: 'آدرس سایت (start_url)'
+        description: 'آدرس سایت'
         required: true
+        default: 'https://example.com'
       themeColor:
-        description: 'رنگ تم (hex)'
+        description: 'رنگ تم'
         required: true
         default: '#7c3aed'
       backgroundColor:
-        description: 'رنگ پس‌زمینه (hex)'
+        description: 'رنگ پس‌زمینه'
         required: true
         default: '#ffffff'
-      manifestUrl:
-        description: 'URL مانفیست آماده (اختیاری)'
-        required: false
-      icon192Url:
-        description: 'URL آیکن 192 (اختیاری)'
-        required: false
-      icon512Url:
-        description: 'URL آیکن 512 (اختیاری)'
-        required: false
-      splashUrl:
-        description: 'URL اسپلش 1024×500 (اختیاری)'
-        required: false
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare workspace
-        run: |
-          set -e
-          echo "🔧 Preparing workspace"
-          mkdir -p workspace && cd workspace
-          sudo apt-get update && sudo apt-get install -y curl imagemagick
-
-          if [ -z "${{ github.event.inputs.manifestUrl }}" ]; then
-            echo "📝 Generating manifest.json..."
-            cat > manifest.json << 'JSON'
-            {
-              "name": "APP_NAME",
-              "short_name": "APP_NAME",
-              "start_url": "SITE_URL",
-              "scope": "/",
-              "display": "standalone",
-              "background_color": "BG_COLOR",
-              "theme_color": "THEME_COLOR",
-              "icons": [
-                { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-                { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-                { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-              ]
-            }
-JSON
-            sed -i "s|APP_NAME|${{ github.event.inputs.appName }}|g" manifest.json
-            sed -i "s|SITE_URL|${{ github.event.inputs.siteUrl }}|g" manifest.json
-            sed -i "s|BG_COLOR|${{ github.event.inputs.backgroundColor }}|g" manifest.json
-            sed -i "s|THEME_COLOR|${{ github.event.inputs.themeColor }}|g" manifest.json
-
-            echo "🖼️ Generating default icons..."
-            convert -size 192x192 xc:${{ github.event.inputs.themeColor }} -gravity center -fill white -pointsize 72 -draw "text 0,0 'A'" icon-192.png
-            convert -size 512x512 xc:${{ github.event.inputs.themeColor }} -gravity center -fill white -pointsize 180 -draw "text 0,0 'A'" icon-512.png
-            convert icon-512.png -stroke "rgba(255,255,255,0.25)" -strokewidth 32 -fill none -draw "circle 256,256 256,32" icon-512-maskable.png
-
-            [ -n "${{ github.event.inputs.icon192Url }}" ] && curl -L "${{ github.event.inputs.icon192Url }}" -o icon-192.png || true
-            [ -n "${{ github.event.inputs.icon512Url }}" ] && curl -L "${{ github.event.inputs.icon512Url }}" -o icon-512.png || true
-            [ -n "${{ github.event.inputs.splashUrl }}" ] && curl -L "${{ github.event.inputs.splashUrl }}" -o splash.png || true
-          else
-            echo "🌐 Using manifest from URL"
-            curl -L "${{ github.event.inputs.manifestUrl }}" -o manifest.json
-            [ -n "${{ github.event.inputs.icon192Url }}" ] && curl -L "${{ github.event.inputs.icon192Url }}" -o icon-192.png || true
-            [ -n "${{ github.event.inputs.icon512Url }}" ] && curl -L "${{ github.event.inputs.icon512Url }}" -o icon-512.png || true
-            [ -n "${{ github.event.inputs.splashUrl }}" ] && curl -L "${{ github.event.inputs.splashUrl }}" -o splash.png || true
-            # اگر مانفیست شامل maskable نیست، می‌سازیم
-            if [ ! -f icon-512-maskable.png ] && [ -f icon-512.png ]; then
-              convert icon-512.png -stroke "rgba(255,255,255,0.25)" -strokewidth 32 -fill none -draw "circle 256,256 256,32" icon-512-maskable.png
-            fi
-          fi
-
-          echo "🧩 Creating minimal PWA files"
-          cat > index.html << 'HTML'
-          <!doctype html><html><head><meta charset="utf-8">
-          <link rel="manifest" href="./manifest.json"><title>PWA</title></head>
-          <body><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}</script></body></html>
-HTML
-          cat > sw.js << 'JS'
-          const VERSION='${{ github.run_id }}';
-          const CORE=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
-          self.addEventListener('install',e=>{e.waitUntil(caches.open('pwa-'+VERSION).then(c=>c.addAll(CORE)))});
-          self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!=='pwa-'+VERSION).map(k=>caches.delete(k)))))});
-          self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});
-JS
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Install Bubblewrap (Google TWA)
+      - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Generate Android project
-        working-directory: workspace
+      - name: Generate TWA
         run: |
-          echo "🏗️ Bubblewrap init"
-          bubblewrap init --manifest=manifest.json --packageId="${{ github.event.inputs.packageId }}" --name="${{ github.event.inputs.appName }}"
-          if [ -f splash.png ]; then
-            echo "🖼️ Inserting splash into Android resources"
-            mkdir -p app/src/main/res/drawable-nodpi
-            cp splash.png app/src/main/res/drawable-nodpi/splash.png || true
-          fi
-
-      - name: Build APK
-        working-directory: workspace
-        run: |
-          echo "⚙️ Building APK"
+          bubblewrap init --manifest=https://YOUR_DOMAIN/manifest.json
           bubblewrap build
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.event.inputs.appName }}-apk
-          path: |
-            workspace/app-release-signed.apk
-            workspace/app-release-unsigned.apk
-
-      - name: Sign APK (optional via Secrets)
-        if: ${{ secrets.KEYSTORE_BASE64 && secrets.KEYSTORE_PASSWORD && secrets.ALIAS_NAME }}
-        working-directory: workspace
-        run: |
-          echo "🔐 Signing APK (optional)"
-          echo "$KEYSTORE_BASE64" | base64 -d > my-release-key.jks
-          if [ -f app-release-unsigned.apk ]; then
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore my-release-key.jks -storepass "$KEYSTORE_PASSWORD" \
-              app-release-unsigned.apk "$ALIAS_NAME"
-          fi
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          ALIAS_NAME: ${{ secrets.ALIAS_NAME }}</code></pre>
+          name: app-apk
+          path: app-release-signed.apk</code></pre>
             </div>
             
             <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -760,337 +704,594 @@ JS
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Theme Toggle
-            const themeToggle = document.getElementById('themeToggle');
-            const lightIcon = document.getElementById('lightIcon');
-            const darkIcon = document.getElementById('darkIcon');
-            
-            // Check for saved theme preference
-            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            if (savedTheme === 'dark') {
-                document.documentElement.classList.add('dark');
-                lightIcon.classList.add('hidden');
-                darkIcon.classList.remove('hidden');
-            } else {
-                document.documentElement.classList.remove('dark');
-                lightIcon.classList.remove('hidden');
-                darkIcon.classList.add('hidden');
+        // PWA Builder Application
+        class PwaBuilder {
+            constructor() {
+                this.initializeElements();
+                this.attachEventListeners();
+                this.initializeApp();
             }
-            
-            themeToggle.addEventListener('click', () => {
-                if (document.documentElement.classList.contains('dark')) {
-                    document.documentElement.classList.remove('dark');
-                    localStorage.setItem('theme', 'light');
-                    lightIcon.classList.remove('hidden');
-                    darkIcon.classList.add('hidden');
+
+            initializeElements() {
+                // Theme elements
+                this.themeToggle = document.getElementById('themeToggle');
+                this.lightIcon = document.getElementById('lightIcon');
+                this.darkIcon = document.getElementById('darkIcon');
+                
+                // Form elements
+                this.appName = document.getElementById('appName');
+                this.packageId = document.getElementById('packageId');
+                this.startUrl = document.getElementById('startUrl');
+                this.scope = document.getElementById('scope');
+                this.displayMode = document.getElementById('displayMode');
+                this.themeColor = document.getElementById('themeColor');
+                this.themeColorHex = document.getElementById('themeColorHex');
+                this.backgroundColor = document.getElementById('backgroundColor');
+                this.backgroundColorHex = document.getElementById('backgroundColorHex');
+                this.icon512 = document.getElementById('icon512');
+                this.icon512Preview = document.getElementById('icon512Preview');
+                this.icon192 = document.getElementById('icon192');
+                this.icon192Preview = document.getElementById('icon192Preview');
+                this.splashImage = document.getElementById('splashImage');
+                this.splashPreview = document.getElementById('splashPreview');
+                this.categories = document.getElementById('categories');
+                this.shortcuts = document.getElementById('shortcuts');
+                this.screenshots = document.getElementById('screenshots');
+                this.resetForm = document.getElementById('resetForm');
+                this.buildPwa = document.getElementById('buildPwa');
+                
+                // Log and preview elements
+                this.logList = document.getElementById('logList');
+                this.generateQr = document.getElementById('generateQr');
+                this.qrModal = document.getElementById('qrModal');
+                this.closeQrModal = document.getElementById('closeQrModal');
+                this.downloadQr = document.getElementById('downloadQr');
+                this.copyWorkflow = document.getElementById('copyWorkflow');
+                
+                // Preview elements
+                this.previewIconText = document.getElementById('previewIconText');
+                this.previewAppName = document.getElementById('previewAppName');
+                this.previewAppNameLarge = document.getElementById('previewAppNameLarge');
+                this.previewDescription = document.getElementById('previewDescription');
+                this.previewIconLarge = document.getElementById('previewIconLarge');
+                this.previewContent = document.getElementById('previewContent');
+                
+                // Validation elements
+                this.httpsCheck = document.getElementById('httpsCheck');
+                this.manifestCheck = document.getElementById('manifestCheck');
+                this.swCheck = document.getElementById('swCheck');
+            }
+
+            attachEventListeners() {
+                // Theme toggle
+                this.themeToggle.addEventListener('click', () => this.toggleTheme());
+                
+                // Color inputs sync
+                this.themeColor.addEventListener('input', () => this.syncColorInputs('theme'));
+                this.themeColorHex.addEventListener('input', () => this.syncColorInputs('theme'));
+                this.backgroundColor.addEventListener('input', () => this.syncColorInputs('background'));
+                this.backgroundColorHex.addEventListener('input', () => this.syncColorInputs('background'));
+                
+                // File inputs
+                this.icon512.addEventListener('change', (e) => this.handleFileUpload(e, this.icon512Preview));
+                this.icon192.addEventListener('change', (e) => this.handleFileUpload(e, this.icon192Preview));
+                this.splashImage.addEventListener('change', (e) => this.handleFileUpload(e, this.splashPreview));
+                
+                // Helper buttons
+                document.getElementById('generateMaskable').addEventListener('click', () => this.generateMaskableIcon());
+                document.getElementById('generate192').addEventListener('click', () => this.generate192Icon());
+                document.getElementById('generateSplash').addEventListener('click', () => this.generateSplashImage());
+                
+                // Form actions
+                this.resetForm.addEventListener('click', () => this.resetFormHandler());
+                this.buildPwa.addEventListener('click', () => this.buildPwaHandler());
+                
+                // QR Code
+                this.generateQr.addEventListener('click', () => this.generateQrCode());
+                this.closeQrModal.addEventListener('click', () => this.qrModal.classList.add('hidden'));
+                this.downloadQr.addEventListener('click', () => this.downloadQrCode());
+                
+                // Workflow copy
+                this.copyWorkflow.addEventListener('click', () => this.copyWorkflowHandler());
+                
+                // Real-time updates
+                const formInputs = document.querySelectorAll('input, textarea, select');
+                formInputs.forEach(input => {
+                    input.addEventListener('input', () => {
+                        this.saveFormToLocalStorage();
+                        this.validateForm();
+                        this.updatePreview();
+                    });
+                });
+            }
+
+            initializeApp() {
+                this.loadFormFromLocalStorage();
+                this.updatePreview();
+                this.validateForm();
+                this.log('سیستم آماده‌سازی شد. لطفاً اطلاعات اپلیکیشن خود را وارد کنید', 'info');
+            }
+
+            toggleTheme() {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                
+                if (isDark) {
+                    this.lightIcon.classList.add('hidden');
+                    this.darkIcon.classList.remove('hidden');
                 } else {
-                    document.documentElement.classList.add('dark');
-                    localStorage.setItem('theme', 'dark');
-                    lightIcon.classList.add('hidden');
-                    darkIcon.classList.remove('hidden');
+                    this.lightIcon.classList.remove('hidden');
+                    this.darkIcon.classList.add('hidden');
                 }
-            });
-            
-            // Form Elements
-            const form = document.getElementById('appBuilderForm');
-            const appName = document.getElementById('appName');
-            const packageId = document.getElementById('packageId');
-            const startUrl = document.getElementById('startUrl');
-            const scope = document.getElementById('scope');
-            const displayMode = document.getElementById('displayMode');
-            const themeColor = document.getElementById('themeColor');
-            const themeColorHex = document.getElementById('themeColorHex');
-            const backgroundColor = document.getElementById('backgroundColor');
-            const backgroundColorHex = document.getElementById('backgroundColorHex');
-            const icon512 = document.getElementById('icon512');
-            const icon512Preview = document.getElementById('icon512Preview');
-            const icon192 = document.getElementById('icon192');
-            const icon192Preview = document.getElementById('icon192Preview');
-            const splashImage = document.getElementById('splashImage');
-            const splashPreview = document.getElementById('splashPreview');
-            const categories = document.getElementById('categories');
-            const shortcuts = document.getElementById('shortcuts');
-            const screenshots = document.getElementById('screenshots');
-            const resetForm = document.getElementById('resetForm');
-            const buildPwa = document.getElementById('buildPwa');
-            const logList = document.getElementById('logList');
-            const generateQr = document.getElementById('generateQr');
-            const qrModal = document.getElementById('qrModal');
-            const closeQrModal = document.getElementById('closeQrModal');
-            const downloadQr = document.getElementById('downloadQr');
-            const copyWorkflow = document.getElementById('copyWorkflow');
-            
-            // Preview Elements
-            const previewIconText = document.getElementById('previewIconText');
-            const previewAppName = document.getElementById('previewAppName');
-            const previewAppNameLarge = document.getElementById('previewAppNameLarge');
-            const previewDescription = document.getElementById('previewDescription');
-            const previewIconLarge = document.getElementById('previewIconLarge');
-            const previewContent = document.getElementById('previewContent');
-            
-            // Validation Elements
-            const httpsCheck = document.getElementById('httpsCheck');
-            const manifestCheck = document.getElementById('manifestCheck');
-            const swCheck = document.getElementById('swCheck');
-            
-            // Initialize form from localStorage
-            loadFormFromLocalStorage();
-            
-            // Color input sync
-            themeColor.addEventListener('input', () => {
-                themeColorHex.value = themeColor.value;
-                updatePreview();
-            });
-            
-            themeColorHex.addEventListener('input', () => {
-                if (/^#[0-9A-F]{6}$/i.test(themeColorHex.value)) {
-                    themeColor.value = themeColorHex.value;
-                    updatePreview();
-                }
-            });
-            
-            backgroundColor.addEventListener('input', () => {
-                backgroundColorHex.value = backgroundColor.value;
-                updatePreview();
-            });
-            
-            backgroundColorHex.addEventListener('input', () => {
-                if (/^#[0-9A-F]{6}$/i.test(backgroundColorHex.value)) {
-                    backgroundColor.value = backgroundColorHex.value;
-                    updatePreview();
-                }
-            });
-            
-            // File input previews
-            icon512.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        icon512Preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-xl">`;
-                        updatePreview();
+            }
+
+            syncColorInputs(type) {
+                if (type === 'theme') {
+                    if (this.themeColorHex.value.match(/^#[0-9A-F]{6}$/i)) {
+                        this.themeColor.value = this.themeColorHex.value;
+                    } else {
+                        this.themeColorHex.value = this.themeColor.value;
                     }
-                    reader.readAsDataURL(this.files[0]);
-                }
-            });
-            
-            icon192.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        icon192Preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-xl">`;
-                    }
-                    reader.readAsDataURL(this.files[0]);
-                }
-            });
-            
-            splashImage.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        splashPreview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-xl">`;
-                    }
-                    reader.readAsDataURL(this.files[0]);
-                }
-            });
-            
-            // Helper buttons
-            document.getElementById('generateMaskable').addEventListener('click', function() {
-                if (!icon512.files || !icon512.files[0]) {
-                    log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
-                    return;
-                }
-                
-                log('در حال تولید آیکن maskable از 512×512...', 'info');
-                
-                // In a real implementation, this would process the image
-                setTimeout(() => {
-                    log('آیکن maskable با موفقیت تولید شد!', 'ok');
-                }, 1000);
-            });
-            
-            document.getElementById('generate192').addEventListener('click', function() {
-                if (!icon512.files || !icon512.files[0]) {
-                    log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
-                    return;
-                }
-                
-                log('در حال تولید آیکن 192×192 از 512×512...', 'info');
-                
-                // In a real implementation, this would process the image
-                setTimeout(() => {
-                    log('آیکن 192×192 با موفقیت تولید شد!', 'ok');
-                    icon192Preview.innerHTML = icon512Preview.innerHTML;
-                }, 1000);
-            });
-            
-            document.getElementById('generateSplash').addEventListener('click', function() {
-                if (!icon512.files || !icon512.files[0]) {
-                    log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
-                    return;
-                }
-                
-                log('در حال تولید تصویر اسپلش از آیکن...', 'info');
-                
-                // In a real implementation, this would process the image
-                setTimeout(() => {
-                    log('تصویر اسپلش با موفقیت تولید شد!', 'ok');
-                    splashPreview.innerHTML = icon512Preview.innerHTML;
-                }, 1000);
-            });
-            
-            // Form reset
-            resetForm.addEventListener('click', function() {
-                document.getElementById('appBuilderForm').reset();
-                icon512Preview.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                `;
-                icon192Preview.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                `;
-                splashPreview.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1L9 20l7-7 5 5V5a2 2 0 00-2-2h-3z" />
-                    </svg>
-                `;
-                localStorage.removeItem('appBuilderFormData');
-                log('فرم با موفقیت پاک‌سازی شد', 'warn');
-                updatePreview();
-            });
-            
-            // Form validation and build
-            buildPwa.addEventListener('click', function() {
-                // Reset validation
-                httpsCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />`;
-                httpsCheck.classList.remove('pwa-check', 'pass', 'fail');
-                httpsCheck.classList.add('pwa-check', 'fail');
-                
-                manifestCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />`;
-                manifestCheck.classList.remove('pwa-check', 'pass', 'fail');
-                manifestCheck.classList.add('pwa-check', 'fail');
-                
-                swCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />`;
-                swCheck.classList.remove('pwa-check', 'pass', 'fail');
-                swCheck.classList.add('pwa-check', 'fail');
-                
-                let isValid = true;
-                
-                // Validate HTTPS
-                if (!startUrl.value.startsWith('https://')) {
-                    log('آدرس سایت باید با https:// شروع شود', 'error');
-                    isValid = false;
                 } else {
-                    httpsCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
-                    httpsCheck.classList.remove('pwa-check', 'fail');
-                    httpsCheck.classList.add('pwa-check', 'pass', 'check-animation');
-                    log('آدرس سایت معتبر است (HTTPS)', 'ok');
+                    if (this.backgroundColorHex.value.match(/^#[0-9A-F]{6}$/i)) {
+                        this.backgroundColor.value = this.backgroundColorHex.value;
+                    } else {
+                        this.backgroundColorHex.value = this.backgroundColor.value;
+                    }
                 }
-                
-                // Validate icon
-                if (!icon512.files || icon512.files.length === 0) {
-                    log('لطفاً آیکن 512×512 را آپلود کنید', 'error');
-                    isValid = false;
-                } else {
-                    manifestCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
-                    manifestCheck.classList.remove('pwa-check', 'fail');
-                    manifestCheck.classList.add('pwa-check', 'pass', 'check-animation');
-                    log('آیکن‌ها معتبر هستند', 'ok');
-                }
-                
-                if (!isValid) {
-                    log('لطفاً ابتدا خطاها را رفع کنید', 'error');
-                    return;
-                }
-                
-                // Save form data before building
-                saveFormToLocalStorage();
-                
-                // Update progress
-                document.querySelectorAll('.progress-step')[0].classList.remove('active');
-                document.querySelectorAll('.progress-step')[0].classList.add('completed');
-                document.querySelectorAll('.progress-step')[1].classList.add('active');
-                
-                log('در حال آماده‌سازی فایل‌های PWA...', 'info');
-                
-                // Simulate processing
-                setTimeout(() => {
-                    log('فایل manifest.json ساخته شد', 'ok');
-                    log('فایل service-worker.js ساخته شد', 'ok');
-                    log('فایل index.html ساخته شد', 'ok');
+                this.updatePreview();
+            }
+
+            async handleFileUpload(event, previewElement) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                try {
+                    const imageUrl = URL.createObjectURL(file);
+                    previewElement.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover rounded-xl">`;
                     
-                    // Generate ZIP
-                    generateZip();
-                }, 1500);
-            });
-            
-            // QR Code functionality
-            generateQr.addEventListener('click', function() {
-                if (!startUrl.value) {
-                    log('لطفاً آدرس سایت را وارد کنید', 'error');
+                    if (previewElement === this.icon512Preview) {
+                        this.validateForm();
+                    }
+                    
+                    this.log(`فایل ${file.name} با موفقیت آپلود شد`, 'ok');
+                } catch (error) {
+                    this.log(`خطا در آپلود فایل: ${error.message}`, 'error');
+                }
+            }
+
+            generateMaskableIcon() {
+                if (!this.icon512.files || !this.icon512.files[0]) {
+                    this.log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
+                    return;
+                }
+                this.log('تولید آیکن maskable...', 'info');
+                // Implementation would go here
+            }
+
+            generate192Icon() {
+                if (!this.icon512.files || !this.icon512.files[0]) {
+                    this.log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
                     return;
                 }
                 
-                qrModal.classList.remove('hidden');
-                generateQrCode(startUrl.value, themeColor.value);
-            });
-            
-            closeQrModal.addEventListener('click', function() {
-                qrModal.classList.add('hidden');
-            });
-            
-            downloadQr.addEventListener('click', function() {
-                const canvas = qrModal.querySelector('canvas');
+                this.log('تولید آیکن 192×192 از 512×512...', 'info');
+                
+                // Create a canvas to resize the image
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 192;
+                canvas.height = 192;
+                
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, 192, 192);
+                    this.icon192Preview.innerHTML = `<img src="${canvas.toDataURL()}" class="w-full h-full object-cover rounded-xl">`;
+                    this.log('آیکن 192×192 با موفقیت تولید شد', 'ok');
+                };
+                
+                img.src = URL.createObjectURL(this.icon512.files[0]);
+            }
+
+            generateSplashImage() {
+                if (!this.icon512.files || !this.icon512.files[0]) {
+                    this.log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
+                    return;
+                }
+                
+                this.log('تولید تصویر اسپلش از آیکن...', 'info');
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 1024;
+                canvas.height = 500;
+                
+                // Fill background
+                ctx.fillStyle = this.backgroundColor.value;
+                ctx.fillRect(0, 0, 1024, 500);
+                
+                const img = new Image();
+                img.onload = () => {
+                    // Calculate position to center the icon
+                    const iconSize = 200;
+                    const x = (1024 - iconSize) / 2;
+                    const y = (500 - iconSize) / 2;
+                    
+                    ctx.drawImage(img, x, y, iconSize, iconSize);
+                    this.splashPreview.innerHTML = `<img src="${canvas.toDataURL()}" class="w-full h-full object-cover rounded-xl">`;
+                    this.log('تصویر اسپلش با موفقیت تولید شد', 'ok');
+                };
+                
+                img.src = URL.createObjectURL(this.icon512.files[0]);
+            }
+
+            resetFormHandler() {
+                if (!confirm('آیا از پاک‌سازی فرم اطمینان دارید؟')) return;
+                
+                document.querySelectorAll('input, textarea').forEach(element => {
+                    if (element.type !== 'color') {
+                        element.value = '';
+                    }
+                });
+                
+                this.displayMode.value = 'standalone';
+                this.themeColor.value = '#7c3aed';
+                this.themeColorHex.value = '#7c3aed';
+                this.backgroundColor.value = '#ffffff';
+                this.backgroundColorHex.value = '#ffffff';
+                this.scope.value = '/';
+                
+                // Reset previews
+                [this.icon512Preview, this.icon192Preview, this.splashPreview].forEach(preview => {
+                    preview.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    `;
+                });
+                
+                localStorage.removeItem('appBuilderFormData');
+                this.log('فرم با موفقیت پاک‌سازی شد', 'warn');
+                this.updatePreview();
+                this.validateForm();
+            }
+
+            validateForm() {
+                // HTTPS validation
+                if (this.startUrl.value.startsWith('https://')) {
+                    this.setValidationState(this.httpsCheck, true);
+                } else {
+                    this.setValidationState(this.httpsCheck, false);
+                }
+                
+                // Manifest validation
+                if (this.icon512.files && this.icon512.files.length > 0) {
+                    this.setValidationState(this.manifestCheck, true);
+                } else {
+                    this.setValidationState(this.manifestCheck, false);
+                }
+                
+                // Service Worker validation
+                if (this.startUrl.value && this.appName.value) {
+                    this.setValidationState(this.swCheck, true);
+                } else {
+                    this.setValidationState(this.swCheck, false);
+                }
+            }
+
+            setValidationState(element, isValid) {
+                if (isValid) {
+                    element.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
+                    element.classList.remove('fail');
+                    element.classList.add('pass', 'check-animation');
+                } else {
+                    element.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />`;
+                    element.classList.remove('pass');
+                    element.classList.add('fail');
+                }
+            }
+
+            async buildPwaHandler() {
+                // Validate required fields
+                if (!this.appName.value || !this.packageId.value || !this.startUrl.value) {
+                    this.log('لطفاً فیلدهای ضروری را پر کنید', 'error');
+                    return;
+                }
+
+                if (!this.startUrl.value.startsWith('https://')) {
+                    this.log('آدرس سایت باید با https:// شروع شود', 'error');
+                    return;
+                }
+
+                if (!this.icon512.files || this.icon512.files.length === 0) {
+                    this.log('لطفاً آیکن 512×512 را آپلود کنید', 'error');
+                    return;
+                }
+
+                this.log('شروع ساخت فایل‌های PWA...', 'info');
+                
+                try {
+                    // Update progress
+                    this.updateProgress(1);
+                    
+                    // Generate files
+                    await this.generatePwaFiles();
+                    
+                    this.log('فایل‌های PWA با موفقیت ساخته شدند', 'ok');
+                    this.updateProgress(2);
+                    
+                } catch (error) {
+                    this.log(`خطا در ساخت فایل‌ها: ${error.message}`, 'error');
+                }
+            }
+
+            async generatePwaFiles() {
+                const zip = new JSZip();
+                
+                // Create manifest.json
+                const manifest = this.createManifest();
+                zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+                
+                // Create service-worker.js
+                const serviceWorker = this.createServiceWorker();
+                zip.file("service-worker.js", serviceWorker);
+                
+                // Create index.html
+                const indexHtml = this.createIndexHtml();
+                zip.file("index.html", indexHtml);
+                
+                // Add icon files
+                await this.addIconToZip(zip, this.icon512, "icon-512.png");
+                await this.addIconToZip(zip, this.icon192, "icon-192.png");
+                await this.addIconToZip(zip, this.splashImage, "splash.png");
+                
+                // Create README
+                const readme = this.createReadme();
+                zip.file("README.md", readme);
+                
+                // Generate and download ZIP
+                const content = await zip.generateAsync({type: "blob"});
+                const appNameClean = this.appName.value.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'pwa';
+                saveAs(content, `${appNameClean}-pwa-files.zip`);
+                
+                this.log(`فایل ZIP با موفقیت دانلود شد (${Math.round(content.size / 1024)} KB)`, 'ok');
+            }
+
+            createManifest() {
+                const manifest = {
+                    name: this.appName.value,
+                    short_name: this.appName.value.substring(0, 12),
+                    start_url: this.startUrl.value,
+                    scope: this.scope.value || '/',
+                    display: this.displayMode.value,
+                    background_color: this.backgroundColor.value,
+                    theme_color: this.themeColor.value,
+                    icons: [
+                        {
+                            src: "icon-192.png",
+                            sizes: "192x192",
+                            type: "image/png",
+                            purpose: "any"
+                        },
+                        {
+                            src: "icon-512.png",
+                            sizes: "512x512",
+                            type: "image/png",
+                            purpose: "any"
+                        }
+                    ]
+                };
+
+                // Add optional fields
+                if (this.categories.value) {
+                    manifest.categories = this.categories.value.split(',').map(c => c.trim());
+                }
+
+                return manifest;
+            }
+
+            createServiceWorker() {
+                return `
+// Service Worker for ${this.appName.value}
+const CACHE_NAME = 'pwa-cache-v1';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+  );
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
+  );
+});
+                `.trim();
+            }
+
+            createIndexHtml() {
+                return `
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${this.appName.value}</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="${this.themeColor.value}">
+    <style>
+        body {
+            font-family: 'Vazirmatn', system-ui;
+            margin: 0;
+            padding: 20px;
+            background: ${this.backgroundColor.value};
+            color: #333;
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .app-icon {
+            width: 128px;
+            height: 128px;
+            margin: 0 auto 20px;
+            background: ${this.themeColor.value}15;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: ${this.themeColor.value};
+        }
+        h1 {
+            color: ${this.themeColor.value};
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-icon">${this.appName.value.charAt(0)}</div>
+    <h1>${this.appName.value}</h1>
+    <p>این اپلیکیشن با ابزار PWA ساز ساخته شده است</p>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
+        }
+    </script>
+</body>
+</html>
+                `.trim();
+            }
+
+            async addIconToZip(zip, fileInput, fileName) {
+                if (fileInput.files && fileInput.files[0]) {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const base64 = e.target.result.split(',')[1];
+                            zip.file(fileName, base64, {base64: true});
+                            resolve();
+                        };
+                        reader.readAsDataURL(fileInput.files[0]);
+                    });
+                }
+            }
+
+            createReadme() {
+                return `
+# ${this.appName.value}
+
+این اپلیکیشن با استفاده از ابزار PWA Builder ساخته شده است.
+
+## نحوه استقرار
+
+1. تمام فایل‌ها را در هاست خود آپلود کنید
+2. مطمئن شوید سرور شما HTTPS است
+3. فایل‌های زیر باید در ریشه سایت قرار گیرند:
+   - index.html
+   - manifest.json
+   - service-worker.js
+   - icon-192.png
+   - icon-512.png
+
+## اطلاعات اپلیکیشن
+
+- نام: ${this.appName.value}
+- آدرس: ${this.startUrl.value}
+- شناسه پکیج: ${this.packageId.value}
+- رنگ تم: ${this.themeColor.value}
+
+## ساخت APK
+
+برای ساخت APK از فایل GitHub Actions ارائه شده استفاده کنید.
+                `.trim();
+            }
+
+            updateProgress(step) {
+                const steps = document.querySelectorAll('.progress-step');
+                steps.forEach((stepEl, index) => {
+                    stepEl.classList.remove('active', 'completed');
+                    if (index < step) {
+                        stepEl.classList.add('completed');
+                    } else if (index === step) {
+                        stepEl.classList.add('active');
+                    }
+                });
+            }
+
+            updatePreview() {
+                const firstLetter = this.appName.value ? this.appName.value.charAt(0).toUpperCase() : 'A';
+                this.previewIconText.textContent = firstLetter;
+                
+                const displayName = this.appName.value || 'نام اپلیکیشن';
+                this.previewAppName.textContent = displayName;
+                this.previewAppNameLarge.textContent = displayName;
+                
+                this.previewDescription.textContent = this.appName.value ? 
+                    `یک اپلیکیشن پیش‌رونده برای ${this.appName.value}` : 
+                    'یک اپلیکیشن پیش‌رونده حرفه‌ای';
+                
+                this.previewContent.style.backgroundColor = this.backgroundColor.value;
+                this.previewIconLarge.style.backgroundColor = `${this.themeColor.value}15`;
+                this.previewIconLarge.querySelector('span').style.color = this.themeColor.value;
+            }
+
+            generateQrCode() {
+                if (!this.startUrl.value) {
+                    this.log('لطفاً آدرس سایت را وارد کنید', 'error');
+                    return;
+                }
+                
+                this.qrModal.classList.remove('hidden');
+                const qr = qrcode(0, 'M');
+                qr.addData(this.startUrl.value);
+                qr.make();
+                
+                const qrImg = qr.createImgTag(8, 0, this.themeColor.value.replace('#', ''), '#ffffff');
+                document.getElementById('qrCodeContainer').innerHTML = qrImg;
+            }
+
+            downloadQrCode() {
+                const canvas = this.qrModal.querySelector('canvas');
                 if (canvas) {
                     const pngUrl = canvas.toDataURL("image/png");
                     const downloadLink = document.createElement('a');
                     downloadLink.href = pngUrl;
-                    downloadLink.download = `${appName.value || 'pwa'}-qr.png`;
+                    downloadLink.download = `${this.appName.value || 'pwa'}-qr.png`;
                     document.body.appendChild(downloadLink);
                     downloadLink.click();
                     document.body.removeChild(downloadLink);
-                    log('QR Code با موفقیت دانلود شد', 'ok');
+                    this.log('QR Code با موفقیت دانلود شد', 'ok');
                 }
-            });
-            
-            // Copy workflow to clipboard
-            copyWorkflow.addEventListener('click', function() {
+            }
+
+            copyWorkflowHandler() {
                 const workflowCode = document.getElementById('workflowCode').textContent;
                 navigator.clipboard.writeText(workflowCode).then(() => {
-                    log('کد Workflow با موفقیت کپی شد', 'ok');
+                    this.log('کد Workflow با موفقیت کپی شد', 'ok');
                     
                     // Visual feedback
-                    const originalText = copyWorkflow.innerHTML;
-                    copyWorkflow.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V9a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        کپی شد!
-                    `;
-                    
+                    const originalText = this.copyWorkflow.innerHTML;
+                    this.copyWorkflow.innerHTML = 'کپی شد!';
                     setTimeout(() => {
-                        copyWorkflow.innerHTML = originalText;
+                        this.copyWorkflow.innerHTML = originalText;
                     }, 2000);
-                }).catch(err => {
-                    log('خطا در کپی کردن: ' + err, 'error');
                 });
-            });
-            
-            // Real-time form updates
-            const formInputs = document.querySelectorAll('#appBuilderForm input, #appBuilderForm textarea, #appBuilderForm select');
-            formInputs.forEach(input => {
-                input.addEventListener('input', function() {
-                    saveFormToLocalStorage();
-                    validateForm();
-                    updatePreview();
-                });
-            });
-            
-            // Functions
-            function log(message, level = 'info') {
+            }
+
+            log(message, level = 'info') {
                 const timestamp = new Date().toLocaleTimeString();
                 const logEntry = document.createElement('li');
                 logEntry.className = 'log-entry text-sm flex';
@@ -1118,463 +1319,47 @@ JS
                     <span class="${textColor}">${icon} ${message}</span>
                 `;
                 
-                logList.appendChild(logEntry);
-                logList.scrollTop = logList.scrollHeight;
+                this.logList.appendChild(logEntry);
+                this.logList.scrollTop = this.logList.scrollHeight;
             }
-            
-            function saveFormToLocalStorage() {
+
+            saveFormToLocalStorage() {
                 const formData = {
-                    appName: appName.value,
-                    packageId: packageId.value,
-                    startUrl: startUrl.value,
-                    scope: scope.value,
-                    displayMode: displayMode.value,
-                    themeColor: themeColor.value,
-                    backgroundColor: backgroundColor.value,
-                    categories: categories.value,
-                    shortcuts: shortcuts.value,
-                    screenshots: screenshots.value
+                    appName: this.appName.value,
+                    packageId: this.packageId.value,
+                    startUrl: this.startUrl.value,
+                    scope: this.scope.value,
+                    displayMode: this.displayMode.value,
+                    themeColor: this.themeColor.value,
+                    backgroundColor: this.backgroundColor.value,
+                    categories: this.categories.value,
+                    shortcuts: this.shortcuts.value,
+                    screenshots: this.screenshots.value
                 };
-                
                 localStorage.setItem('appBuilderFormData', JSON.stringify(formData));
             }
-            
-            function loadFormFromLocalStorage() {
+
+            loadFormFromLocalStorage() {
                 const savedData = localStorage.getItem('appBuilderFormData');
                 if (savedData) {
                     try {
                         const formData = JSON.parse(savedData);
-                        
-                        // Fill form fields
-                        if (formData.appName) appName.value = formData.appName;
-                        if (formData.packageId) packageId.value = formData.packageId;
-                        if (formData.startUrl) startUrl.value = formData.startUrl;
-                        if (formData.scope) scope.value = formData.scope;
-                        if (formData.displayMode) displayMode.value = formData.displayMode;
-                        if (formData.themeColor) {
-                            themeColor.value = formData.themeColor;
-                            themeColorHex.value = formData.themeColor;
-                        }
-                        if (formData.backgroundColor) {
-                            backgroundColor.value = formData.backgroundColor;
-                            backgroundColorHex.value = formData.backgroundColor;
-                        }
-                        if (formData.categories) categories.value = formData.categories;
-                        if (formData.shortcuts) shortcuts.value = formData.shortcuts;
-                        if (formData.screenshots) screenshots.value = formData.screenshots;
-                        
-                        log('اطلاعات ذخیره شده بازیابی شد', 'ok');
-                        updatePreview();
-                    } catch (e) {
-                        log('خطا در بازیابی اطلاعات: ' + e.message, 'error');
-                    }
-                }
-            }
-            
-            function validateForm() {
-                // HTTPS validation
-                if (startUrl.value.startsWith('https://')) {
-                    httpsCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
-                    httpsCheck.classList.remove('pwa-check', 'fail');
-                    httpsCheck.classList.add('pwa-check', 'pass');
-                } else {
-                    httpsCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />`;
-                    httpsCheck.classList.remove('pwa-check', 'pass');
-                    httpsCheck.classList.add('pwa-check', 'fail');
-                }
-                
-                // Manifest validation
-                if (icon512.files && icon512.files.length > 0) {
-                    manifestCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
-                    manifestCheck.classList.remove('pwa-check', 'fail');
-                    manifestCheck.classList.add('pwa-check', 'pass');
-                } else {
-                    manifestCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />`;
-                    manifestCheck.classList.remove('pwa-check', 'pass');
-                    manifestCheck.classList.add('pwa-check', 'fail');
-                }
-                
-                // Service Worker validation
-                if (startUrl.value) {
-                    swCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
-                    swCheck.classList.remove('pwa-check', 'fail');
-                    swCheck.classList.add('pwa-check', 'pass');
-                } else {
-                    swCheck.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />`;
-                    swCheck.classList.remove('pwa-check', 'pass');
-                    swCheck.classList.add('pwa-check', 'fail');
-                }
-            }
-            
-            function updatePreview() {
-                // Get first letter of app name for icon
-                const firstLetter = appName.value ? appName.value.charAt(0).toUpperCase() : 'A';
-                previewIconText.textContent = firstLetter;
-                
-                // Update app name
-                const displayName = appName.value || 'نام اپلیکیشن';
-                previewAppName.textContent = displayName;
-                previewAppNameLarge.textContent = displayName;
-                
-                // Update description
-                previewDescription.textContent = appName.value ? 
-                    `یک اپلیکیشن پیش‌رونده حرفه‌ای برای ${appName.value}` : 
-                    'یک اپلیکیشن پیش‌رونده حرفه‌ای';
-                
-                // Update colors
-                previewContent.style.backgroundColor = backgroundColor.value;
-                previewIconLarge.style.backgroundColor = `${themeColor.value}15`; // 15 for 8% opacity
-                previewIconLarge.querySelector('span').style.color = themeColor.value;
-            }
-            
-            function generateQrCode(text, color) {
-                const qrCodeContainer = document.getElementById('qrCodeContainer');
-                qrCodeContainer.innerHTML = '';
-                
-                const qr = qrcode(0, 'M');
-                qr.addData(text);
-                qr.make();
-                
-                const qrImg = qr.createImgTag(8, 0, color, '#ffffff');
-                qrCodeContainer.innerHTML = qrImg;
-            }
-            
-            async function generateZip() {
-                log('در حال ساخت فایل ZIP...', 'info');
-                
-                const zip = new JSZip();
-                
-                // Create manifest.json
-                const manifest = {
-                    name: appName.value,
-                    short_name: appName.value.substring(0, 12),
-                    start_url: startUrl.value,
-                    scope: scope.value || '/',
-                    display: displayMode.value,
-                    background_color: backgroundColor.value,
-                    theme_color: themeColor.value,
-                    icons: [
-                        { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-                        { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-                        { src: "icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
-                    ]
-                };
-                
-                // Add categories if provided
-                if (categories.value) {
-                    manifest.categories = categories.value.split(',').map(c => c.trim());
-                }
-                
-                // Add screenshots if provided
-                if (screenshots.value) {
-                    manifest.screenshots = screenshots.value.split('\n')
-                        .filter(url => url.trim())
-                        .map(url => ({
-                            src: url.trim(),
-                            sizes: "1080x1920",
-                            type: "image/png"
-                        }));
-                }
-                
-                // Add shortcuts if provided
-                if (shortcuts.value) {
-                    manifest.shortcuts = shortcuts.value.split('\n')
-                        .filter(item => item.includes('|'))
-                        .map(item => {
-                            const [name, url] = item.split('|').map(part => part.trim());
-                            return { name, url, icons: [{ src: "icon-192.png", sizes: "192x192" }] };
+                        Object.keys(formData).forEach(key => {
+                            if (this[key] && formData[key] !== null) {
+                                this[key].value = formData[key];
+                            }
                         });
-                }
-                
-                zip.file("manifest.json", JSON.stringify(manifest, null, 2));
-                
-                // Create service-worker.js
-                const serviceWorker = `
-// Service Worker برای ${appName.value}
-const CACHE_NAME = 'pwa-${Date.now()}';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/icon-512-maskable.png'
-];
-
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-  );
-});
-
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
-});
-
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
-                `;
-                zip.file("service-worker.js", serviceWorker);
-                
-                // Create index.html
-                const indexHtml = `
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${appName.value}</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="${themeColor.value}">
-    <style>
-        body {
-            font-family: 'Vazirmatn', system-ui, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: ${backgroundColor.value};
-            color: #333;
-            text-align: center;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .app-icon {
-            width: 128px;
-            height: 128px;
-            margin: 0 auto 20px;
-            background-color: ${themeColor.value}15;
-            border-radius: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            font-weight: bold;
-            color: ${themeColor.value};
-        }
-        h1 {
-            color: ${themeColor.value};
-            margin-bottom: 10px;
-        }
-        .install-button {
-            background-color: ${themeColor.value};
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: opacity 0.3s;
-        }
-        .install-button:hover {
-            opacity: 0.9;
-        }
-    </style>
-</head>
-<body>
-    <div class="app-icon">${appName.value ? appName.value.charAt(0) : 'A'}</div>
-    <h1>${appName.value || 'اپلیکیشن شما'}</h1>
-    <p>این یک اپلیکیشن پیش‌رونده (PWA) است که می‌تواند بدون نیاز به فروشگاه‌های اپلیکیشن نصب شود.</p>
-    <button class="install-button" id="installButton">نصب اپلیکیشن</button>
-
-    <script>
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            const installButton = document.getElementById('installButton');
-            installButton.textContent = 'نصب اپلیکیشن';
-            installButton.style.display = 'block';
-            
-            installButton.addEventListener('click', () => {
-                installButton.disabled = true;
-                installButton.textContent = 'در حال نصب...';
-                
-                deferredPrompt.prompt();
-                
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('کاربر اپلیکیشن را نصب کرد');
-                    } else {
-                        console.log('کاربر از نصب صرف‌نظر کرد');
-                        installButton.textContent = 'نصب اپلیکیشن';
-                        installButton.disabled = false;
+                        this.log('اطلاعات ذخیره شده بازیابی شد', 'ok');
+                    } catch (e) {
+                        this.log('خطا در بازیابی اطلاعات', 'error');
                     }
-                    deferredPrompt = null;
-                });
-            });
-        });
-        
-        // Check if app is already installed
-        window.addEventListener('appinstalled', (evt) => {
-            document.getElementById('installButton').style.display = 'none';
-            console.log('اپلیکیشن با موفقیت نصب شد');
-        });
-        
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registered with scope:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.error('ServiceWorker registration failed:', error);
-                    });
-            });
-        }
-    </script>
-</body>
-</html>
-                `;
-                zip.file("index.html", indexHtml);
-                
-                // Add icon files if available
-                if (icon512.files && icon512.files[0]) {
-                    const file = icon512.files[0];
-                    const reader = new FileReader();
-                    
-                    await new Promise((resolve, reject) => {
-                        reader.onload = function(e) {
-                            zip.file("icon-512.png", e.target.result.split(',')[1], { base64: true });
-                            resolve();
-                        };
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
                 }
-                
-                if (icon192.files && icon192.files[0]) {
-                    const file = icon192.files[0];
-                    const reader = new FileReader();
-                    
-                    await new Promise((resolve, reject) => {
-                        reader.onload = function(e) {
-                            zip.file("icon-192.png", e.target.result.split(',')[1], { base64: true });
-                            resolve();
-                        };
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
-                } else if (icon512.files && icon512.files[0]) {
-                    // Generate 192x192 from 512x512
-                    log('در حال تولید آیکن 192×192 از 512×512...', 'info');
-                    const file = icon512.files[0];
-                    const img = await createImageBitmap(file);
-                    
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 192;
-                    canvas.height = 192;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, 192, 192);
-                    
-                    return new Promise((resolve) => {
-                        canvas.toBlob(blob => {
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                zip.file("icon-192.png", e.target.result.split(',')[1], { base64: true });
-                                resolve();
-                            };
-                            reader.readAsDataURL(blob);
-                        }, 'image/png');
-                    });
-                }
-                
-                // Add splash image if available
-                if (splashImage.files && splashImage.files[0]) {
-                    const file = splashImage.files[0];
-                    const reader = new FileReader();
-                    
-                    await new Promise((resolve, reject) => {
-                        reader.onload = function(e) {
-                            zip.file("splash.png", e.target.result.split(',')[1], { base64: true });
-                            resolve();
-                        };
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
-                }
-                
-                // Add README.txt
-                const appNameClean = appName.value.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'pwa';
-                const readme = `
-# ${appName.value || 'اپلیکیشن PWA'}
-
-این پروژه یک اپلیکیشن پیش‌رونده (PWA) است که با استفاده از ابزار اپ‌ساز ساخته شده است.
-
-## نحوه استقرار
-
-1. تمام فایل‌های این پوشه را در هاستینگ خود قرار دهید
-2. مطمئن شوید که سرور شما فایل‌های با پسوند .json را با Content-Type صحیح ارسال می‌کند
-3. آدرس سایت خود را بررسی کنید تا مطابق با start_url در manifest.json باشد
-
-## فایل‌های اصلی
-
-- **manifest.json**: تنظیمات اصلی PWA
-- **service-worker.js**: مدیریت کش و افلاين بودن
-- **index.html**: صفحه اصلی اپلیکیشن
-- **icon-192.png**: آیکن برای صفحه اصلی
-- **icon-512.png**: آیکن برای نصب
-- **icon-512-maskable.png**: آیکن maskable برای دستگاه‌های اندروید
-
-## ساخت APK
-
-برای تبدیل این PWA به فایل APK می‌توانید از GitHub Actions استفاده کنید. 
-فایل build-apk.yml را در ریپازیتوری خود قرار داده و تنظیمات لازم را انجام دهید.
-
-برای اطلاعات بیشتر به بخش GitHub Actions این ابزار مراجعه کنید.
-                `;
-                zip.file("README.txt", readme);
-                
-                // Generate and download ZIP
-                zip.generateAsync({type: "blob"})
-                .then(function(content) {
-                    const appNameClean = appName.value.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'pwa';
-                    saveAs(content, `${appNameClean}-pwa-files.zip`);
-                    
-                    // Update progress
-                    document.querySelectorAll('.progress-step')[1].classList.remove('active');
-                    document.querySelectorAll('.progress-step')[1].classList.add('completed');
-                    document.querySelectorAll('.progress-step')[2].classList.add('active');
-                    
-                    log(`فایل‌های PWA با موفقیت ساخته شدند! (${Math.round(content.size / 1024)} KB)`, 'ok');
-                    log('فایل ZIP دانلود شد. برای ساخت APK می‌توانید از بخش GitHub Actions استفاده کنید', 'info');
-                })
-                .catch(function(e) {
-                    log('خطا در ساخت فایل ZIP: ' + e.message, 'error');
-                });
             }
-            
-            // Initialize
-            updatePreview();
-            validateForm();
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new PwaBuilder();
         });
     </script>
 </body>
