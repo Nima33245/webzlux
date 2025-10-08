@@ -1,4 +1,4 @@
-name: Build APK from PWA
+name: Build website into APK (Pro TWA)
 
 on:
   workflow_dispatch:
@@ -6,59 +6,136 @@ on:
       appName:
         description: 'نام اپلیکیشن'
         required: true
-        default: 'اپلیکیشن من'
       packageId:
-        description: 'شناسه پکیج اندروید'
+        description: 'شناسه پکیج اندروید (مثلاً com.example.app)'
         required: true
-        default: 'com.example.pwa'
       siteUrl:
-        description: 'آدرس سایت'
+        description: 'آدرس سایت (start_url)'
         required: true
-        default: 'https://example.com'
       themeColor:
-        description: 'رنگ تم'
+        description: 'رنگ تم (hex)'
         required: true
-        default: '#7c3aed'
+        default: '#0ea5e9'
       backgroundColor:
-        description: 'رنگ پس‌زمینه'
+        description: 'رنگ پس‌زمینه (hex)'
         required: true
         default: '#ffffff'
-      displayMode:
-        description: 'حالت نمایش'
-        required: true
-        default: 'standalone'
-      versionCode:
-        description: 'کد نسخه'
-        required: true
-        default: '1'
-      versionName:
-        description: 'نام نسخه'
-        required: true
-        default: '1.0.0'
+      manifestUrl:
+        description: 'URL مانفیست آماده (اختیاری)'
+        required: false
+      icon192Url:
+        description: 'URL آیکن 192 (اختیاری)'
+        required: false
+      icon512Url:
+        description: 'URL آیکن 512 (اختیاری)'
+        required: false
+      splashUrl:
+        description: 'URL اسپلش 1024×500 (اختیاری)'
+        required: false
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: 🛠️ آماده‌سازی محیط
+      - name: Prepare workspace
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl imagemagick
-          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-          npm install -g @bubblewrap/cli
+          set -e
+          mkdir -p workspace && cd workspace
+          sudo apt-get update && sudo apt-get install -y curl imagemagick
 
-      - name: 📥 دریافت فایل‌های PWA
-        uses: actions/checkout@v3
+          if [ -z "${{ github.event.inputs.manifestUrl }}" ]; then
+            cat > manifest.json << 'JSON'
+            {
+              "name": "APP_NAME",
+              "short_name": "APP_NAME",
+              "start_url": "SITE_URL",
+              "scope": "/",
+              "display": "standalone",
+              "background_color": "BG_COLOR",
+              "theme_color": "THEME_COLOR",
+              "icons": [
+                { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+                { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+                { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+              ]
+            }
+JSON
+            sed -i "s|APP_NAME|${{ github.event.inputs.appName }}|g" manifest.json
+            sed -i "s|SITE_URL|${{ github.event.inputs.siteUrl }}|g" manifest.json
+            sed -i "s|BG_COLOR|${{ github.event.inputs.backgroundColor }}|g" manifest.json
+            sed -i "s|THEME_COLOR|${{ github.event.inputs.themeColor }}|g" manifest.json
 
-      - name: 🏗️ ساخت APK
+            # Default icons (if no URLs provided)
+            convert -size 192x192 xc:${{ github.event.inputs.themeColor }} -gravity center -fill white -pointsize 72 -draw "text 0,0 'A'" icon-192.png
+            convert -size 512x512 xc:${{ github.event.inputs.themeColor }} -gravity center -fill white -pointsize 180 -draw "text 0,0 'A'" icon-512.png
+            convert icon-512.png -stroke "rgba(255,255,255,0.25)" -strokewidth 32 -fill none -draw "circle 256,256 256,32" icon-512-maskable.png
+
+            [ -n "${{ github.event.inputs.icon192Url }}" ] && curl -L "${{ github.event.inputs.icon192Url }}" -o icon-192.png || true
+            [ -n "${{ github.event.inputs.icon512Url }}" ] && curl -L "${{ github.event.inputs.icon512Url }}" -o icon-512.png || true
+            [ -n "${{ github.event.inputs.splashUrl }}" ] && curl -L "${{ github.event.inputs.splashUrl }}" -o splash.png || true
+          else
+            curl -L "${{ github.event.inputs.manifestUrl }}" -o manifest.json
+            [ -n "${{ github.event.inputs.icon192Url }}" ] && curl -L "${{ github.event.inputs.icon192Url }}" -o icon-192.png || true
+            [ -n "${{ github.event.inputs.icon512Url }}" ] && curl -L "${{ github.event.inputs.icon512Url }}" -o icon-512.png || true
+            [ -n "${{ github.event.inputs.splashUrl }}" ] && curl -L "${{ github.event.inputs.splashUrl }}" -o splash.png || true
+            if [ ! -f icon-512-maskable.png ] && [ -f icon-512.png ]; then
+              convert icon-512.png -stroke "rgba(255,255,255,0.25)" -strokewidth 32 -fill none -draw "circle 256,256 256,32" icon-512-maskable.png
+            fi
+          fi
+
+          # Minimal HTML & SW
+          cat > index.html << 'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="./manifest.json"><title>PWA</title></head>
+          <body><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}</script></body></html>
+HTML
+          cat > sw.js << 'JS'
+          const VERSION='${{ github.run_id }}';
+          const CORE=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
+          self.addEventListener('install',e=>{e.waitUntil(caches.open('pwa-'+VERSION).then(c=>c.addAll(CORE)))});
+          self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!=='pwa-'+VERSION).map(k=>caches.delete(k)))))});
+          self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});
+JS
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Bubblewrap (Google TWA)
+        run: npm install -g @bubblewrap/cli
+
+      - name: Generate Android project
+        working-directory: workspace
         run: |
-          bubblewrap init --manifest=./manifest.json
-          bubblewrap build
+          bubblewrap init --manifest=manifest.json --packageId="${{ github.event.inputs.packageId }}" --name="${{ github.event.inputs.appName }}"
+          if [ -f splash.png ]; then
+            mkdir -p app/src/main/res/drawable-nodpi
+            cp splash.png app/src/main/res/drawable-nodpi/splash.png || true
+          fi
 
-      - name: 📤 آپلود APK
+      - name: Build APK
+        working-directory: workspace
+        run: bubblewrap build
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v3
         with:
-          name: app-apk
-          path: app-release-signed.apk
-          retention-days: 30
+          name: ${{ github.event.inputs.appName }}-apk
+          path: |
+            workspace/app-release-signed.apk
+            workspace/app-release-unsigned.apk
+
+      - name: Sign APK (optional via Secrets)
+        if: ${{ secrets.KEYSTORE_BASE64 && secrets.KEYSTORE_PASSWORD && secrets.ALIAS_NAME }}
+        working-directory: workspace
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > my-release-key.jks
+          if [ -f app-release-unsigned.apk ]; then
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore my-release-key.jks -storepass "$KEYSTORE_PASSWORD" \
+              app-release-unsigned.apk "$ALIAS_NAME"
+          fi
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          ALIAS_NAME: ${{ secrets.ALIAS_NAME }}
