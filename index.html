@@ -1,1634 +1,150 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ابزار حرفه‌ای ساخت PWA و تبدیل آن به APK - ساخت اپلیکیشن‌های پیش‌رونده با یک کلیک">
-    <title>ابزار ساخت PWA + APK | اپ‌ساز حرفه‌ای</title>
-    
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
-                        }
-                    },
-                    fontFamily: {
-                        'vazir': ['Vazirmatn', 'system-ui']
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- External Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-    
-    <!-- Custom Styles -->
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
-        
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Vazirmatn', sans-serif;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        
-        .card {
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        
-        .preview-device {
-            perspective: 1000px;
-            transform-style: preserve-3d;
-        }
-        
-        .preview-screen {
-            border-radius: 28px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transform: rotateX(5deg) rotateY(10deg);
-            transition: all 0.4s ease;
-        }
-        
-        .check-animation {
-            animation: checkmark 0.4s ease-in-out;
-        }
-        
-        @keyframes checkmark {
-            0% { stroke-dashoffset: 16; }
-            100% { stroke-dashoffset: 0; }
-        }
-        
-        .progress-step {
-            transition: all 0.3s ease;
-        }
-        
-        .progress-step.active {
-            background-color: rgb(14, 165, 233);
-            color: white;
-        }
-        
-        .progress-step.completed {
-            background-color: rgb(34, 197, 94);
-            color: white;
-        }
-        
-        .log-entry {
-            animation: fadeIn 0.3s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .icon-preview {
-            border-radius: 24px;
-            transition: all 0.3s ease;
-        }
-        
-        .icon-preview:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.3);
-        }
-        
-        .pwa-check {
-            transition: all 0.3s ease;
-        }
-        
-        .pwa-check.pass {
-            color: rgb(34, 197, 94);
-        }
-        
-        .pwa-check.fail {
-            color: rgb(239, 68, 68);
-        }
-        
-        .helper-btn {
-            transition: all 0.2s ease;
-        }
-        
-        .helper-btn:hover {
-            background-color: rgb(243, 244, 246);
-            transform: translateY(-2px);
-        }
-        
-        .dark .helper-btn:hover {
-            background-color: rgb(55, 65, 81);
-        }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #a1a1a1;
-        }
-        
-        .dark ::-webkit-scrollbar-track {
-            background: #374151;
-        }
-        
-        .dark ::-webkit-scrollbar-thumb {
-            background: #6b7280;
-        }
-        
-        .dark ::-webkit-scrollbar-thumb:hover {
-            background: #9ca3af;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
-    <!-- Theme Toggle -->
-    <div class="fixed top-4 left-4 z-50">
-        <button id="themeToggle" class="p-2 rounded-full bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-all duration-300">
-            <svg id="lightIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
-            </svg>
-            <svg id="darkIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300 hidden" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-            </svg>
-        </button>
-    </div>
-
-    <!-- Main Container -->
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <!-- Header -->
-        <header class="text-center mb-12">
-            <div class="flex flex-col items-center">
-                <div class="bg-primary-100 dark:bg-primary-900 p-4 rounded-2xl mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                </div>
-                <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-blue-500 mb-4">
-                    ابزار ساخت PWA + APK حرفه‌ای
-                </h1>
-                <p class="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                    اپلیکیشن‌های پیش‌رونده (PWA) خود را در چند دقیقه بسازید و به‌راحتی به فرمت APK تبدیل کنید. بدون نیاز به دانش برنامه‌نویسی!
-                </p>
-            </div>
-        </header>
-
-        <!-- Progress Steps -->
-        <div class="flex justify-center mb-10">
-            <div class="flex flex-wrap justify-center max-w-3xl">
-                <div class="progress-step active text-center px-4 py-2">
-                    <div class="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center mb-2 mx-auto">
-                        <span>1</span>
-                    </div>
-                    <div class="text-sm font-medium">تنظیمات اپ</div>
-                </div>
-                <div class="flex-1 border-t-2 border-dashed border-gray-300 dark:border-gray-700 my-5 hidden md:block"></div>
-                <div class="progress-step text-center px-4 py-2">
-                    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center mb-2 mx-auto">
-                        <span>2</span>
-                    </div>
-                    <div class="text-sm font-medium">پیش‌نمایش</div>
-                </div>
-                <div class="flex-1 border-t-2 border-dashed border-gray-300 dark:border-gray-700 my-5 hidden md:block"></div>
-                <div class="progress-step text-center px-4 py-2">
-                    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center mb-2 mx-auto">
-                        <span>3</span>
-                    </div>
-                    <div class="text-sm font-medium">دریافت فایل</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Left Column - Form -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- Basic Info Card -->
-                <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-                    <div class="bg-primary-500 dark:bg-primary-600 p-5">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            اطلاعات اپلیکیشن
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="appName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    نام اپلیکیشن <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" id="appName" name="appName" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" placeholder="مثلاً: فروشگاه اینترنتی من" required>
-                            </div>
-                            <div>
-                                <label for="packageId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    شناسه پکیج اندروید <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" id="packageId" name="packageId" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" placeholder="مثلاً: com.example.app" required>
-                            </div>
-                            <div class="md:col-span-2">
-                                <label for="startUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    آدرس سایت (start_url) <span class="text-red-500">*</span>
-                                </label>
-                                <input type="url" id="startUrl" name="startUrl" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" placeholder="https://example.com" required>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">آدرس اصلی سایت شما که باید با HTTPS شروع شود</p>
-                            </div>
-                            <div>
-                                <label for="scope" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Scope
-                                </label>
-                                <input type="text" id="scope" name="scope" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" value="/" placeholder="/">
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">مسیرهای مجاز برای اپلیکیشن</p>
-                            </div>
-                            <div>
-                                <label for="displayMode" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    حالت نمایش
-                                </label>
-                                <select id="displayMode" name="displayMode" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
-                                    <option value="standalone">Standalone (پیش‌فرض)</option>
-                                    <option value="fullscreen">Fullscreen</option>
-                                    <option value="minimal-ui">Minimal UI</option>
-                                    <option value="browser">Browser</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="themeColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    رنگ تم
-                                </label>
-                                <div class="flex items-center">
-                                    <input type="color" id="themeColor" name="themeColor" class="w-10 h-10 p-0 -m-px border-0 cursor-pointer" value="#7c3aed">
-                                    <input type="text" id="themeColorHex" class="flex-1 mr-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" value="#7c3aed">
-                                </div>
-                            </div>
-                            <div>
-                                <label for="backgroundColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    رنگ پس‌زمینه
-                                </label>
-                                <div class="flex items-center">
-                                    <input type="color" id="backgroundColor" name="backgroundColor" class="w-10 h-10 p-0 -m-px border-0 cursor-pointer" value="#ffffff">
-                                    <input type="text" id="backgroundColorHex" class="flex-1 mr-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" value="#ffffff">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Icons Card -->
-                <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-                    <div class="bg-primary-500 dark:bg-primary-600 p-5">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                            </svg>
-                            آیکن‌ها و تصاویر
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="text-center">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    آیکن 512×512 <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <input type="file" id="icon512" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required>
-                                    <div class="border-2 border-dashed rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50 hover:border-primary-500 transition">
-                                        <div id="icon512Preview" class="w-24 h-24 mx-auto mb-3 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center overflow-hidden">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                        </div>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">PNG یا JPG (512×512)</p>
-                                    </div>
-                                </div>
-                                <button type="button" id="generateMaskable" class="helper-btn mt-2 text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center justify-center w-full">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                    تولید آیکن maskable
-                                </button>
-                            </div>
-                            
-                            <div class="text-center">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    آیکن 192×192
-                                </label>
-                                <div class="relative">
-                                    <input type="file" id="icon192" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                                    <div class="border-2 border-dashed rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50 hover:border-primary-500 transition">
-                                        <div id="icon192Preview" class="w-24 h-24 mx-auto mb-3 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center overflow-hidden">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                        </div>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">PNG یا JPG (192×192)</p>
-                                    </div>
-                                </div>
-                                <button type="button" id="generate192" class="helper-btn mt-2 text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center justify-center w-full">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                    </svg>
-                                    تولید از 512
-                                </button>
-                            </div>
-                            
-                            <div class="text-center">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    تصویر اسپلش (اختیاری)
-                                </label>
-                                <div class="relative">
-                                    <input type="file" id="splashImage" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                                    <div class="border-2 border-dashed rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50 hover:border-primary-500 transition">
-                                        <div id="splashPreview" class="w-24 h-24 mx-auto mb-3 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center overflow-hidden">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1L9 20l7-7 5 5V5a2 2 0 00-2-2h-3z" />
-                                            </svg>
-                                        </div>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">1024×500 پیشنهادی</p>
-                                    </div>
-                                </div>
-                                <button type="button" id="generateSplash" class="helper-btn mt-2 text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center justify-center w-full">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
-                                    تولید از آیکن
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Advanced Settings Card -->
-                <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-                    <div class="bg-primary-500 dark:bg-primary-600 p-5">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                            </svg>
-                            تنظیمات پیشرفته
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="categories" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    دسته‌بندی‌ها
-                                </label>
-                                <input type="text" id="categories" name="categories" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" placeholder="مثلاً: business, shopping">
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">جدا شده با کاما</p>
-                            </div>
-                            <div>
-                                <label for="shortcuts" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    میان‌برها (Shortcuts)
-                                </label>
-                                <textarea id="shortcuts" rows="3" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" placeholder="نام1|URL1&#10;نام2|URL2"></textarea>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">یک میان‌بر در هر خط (نام|URL)</p>
-                            </div>
-                            <div class="md:col-span-2">
-                                <label for="screenshots" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    تصاویر نمایه (Screenshots)
-                                </label>
-                                <textarea id="screenshots" rows="3" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" placeholder="https://example.com/screenshot1.jpg&#10;https://example.com/screenshot2.jpg"></textarea>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">آدرس تصاویر نمایه (یک URL در هر خط)</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button id="resetForm" class="flex-1 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        پاک‌سازی فرم
-                    </button>
-                    <button id="buildPwa" type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-blue-500 hover:from-primary-700 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                        </svg>
-                        ساخت فایل‌های PWA
-                    </button>
-                </div>
-            </div>
-
-            <!-- Right Column - Preview & Logs -->
-            <div class="lg:col-span-1 space-y-6">
-                <!-- PWA Validation Card -->
-                <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-                    <div class="bg-green-50 dark:bg-green-900/20 p-5 border-l-4 border-green-500">
-                        <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            اعتبارسنجی PWA
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <ul class="space-y-3">
-                            <li class="flex items-start">
-                                <svg id="httpsCheck" class="pwa-check fail h-5 w-5 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                                <div>
-                                    <p class="font-medium text-gray-700 dark:text-gray-300">HTTPS معتبر</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">آدرس سایت باید با https:// شروع شود</p>
-                                </div>
-                            </li>
-                            <li class="flex items-start">
-                                <svg id="manifestCheck" class="pwa-check fail h-5 w-5 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                                <div>
-                                    <p class="font-medium text-gray-700 dark:text-gray-300">فایل manifest.json</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">حداقل یک آیکن 512×512 مورد نیاز است</p>
-                                </div>
-                            </li>
-                            <li class="flex items-start">
-                                <svg id="swCheck" class="pwa-check fail h-5 w-5 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                                <div>
-                                    <p class="font-medium text-gray-700 dark:text-gray-300">Service Worker</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">فایل service-worker.js باید وجود داشته باشد</p>
-                                </div>
-                            </li>
-                        </ul>
-                        <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <p class="text-sm text-blue-700 dark:text-blue-300 flex items-start">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mt-0.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                پس از ساخت فایل‌ها، برای تبدیل به APK می‌توانید از 
-                                <a href="#github-actions" class="text-primary-600 dark:text-primary-400 mx-1 font-medium">GitHub Actions</a> استفاده کنید
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Live Preview Card -->
-                <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-                    <div class="bg-gray-50 dark:bg-gray-700/50 p-5 border-b">
-                        <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M7 6h10M7 10h2" />
-                            </svg>
-                            پیش‌نمایش زنده
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="preview-device">
-                            <div class="preview-screen bg-gray-100 dark:bg-gray-700 mx-auto" style="width: 320px; height: 600px;">
-                                <div class="h-16 bg-gradient-to-b from-gray-800 to-gray-900 flex items-center px-4">
-                                    <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center mr-3">
-                                        <span id="previewIconText" class="text-white font-bold text-xs">A</span>
-                                    </div>
-                                    <h3 id="previewAppName" class="font-bold text-white truncate">نام اپلیکیشن</h3>
-                                </div>
-                                
-                                <div id="previewContent" class="p-4 h-[calc(100%-4rem)] relative">
-                                    <div class="text-center mt-8">
-                                        <div id="previewIconLarge" class="w-24 h-24 mx-auto rounded-xl mb-4 bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                            <span class="text-3xl font-bold text-primary-600 dark:text-primary-400">A</span>
-                                        </div>
-                                        <h2 id="previewAppNameLarge" class="text-2xl font-bold mb-2">نام اپلیکیشن</h2>
-                                        <p id="previewDescription" class="text-gray-600 dark:text-gray-300">یک اپلیکیشن پیش‌رونده حرفه‌ای</p>
-                                    </div>
-                                    
-                                    <div class="absolute bottom-6 left-0 right-0 px-4">
-                                        <div class="bg-white dark:bg-gray-600 rounded-2xl p-3 shadow-lg">
-                                            <div class="flex justify-around">
-                                                <div class="text-center">
-                                                    <div class="w-8 h-8 mx-auto bg-gray-200 dark:bg-gray-500 rounded-full"></div>
-                                                    <span class="text-xs mt-1 block">صفحه اصلی</span>
-                                                </div>
-                                                <div class="text-center">
-                                                    <div class="w-8 h-8 mx-auto bg-gray-200 dark:bg-gray-500 rounded-full"></div>
-                                                    <span class="text-xs mt-1 block">جستجو</span>
-                                                </div>
-                                                <div class="text-center">
-                                                    <div class="w-8 h-8 mx-auto bg-gray-200 dark:bg-gray-500 rounded-full"></div>
-                                                    <span class="text-xs mt-1 block">سبد خرید</span>
-                                                </div>
-                                                <div class="text-center">
-                                                    <div class="w-8 h-8 mx-auto bg-gray-200 dark:bg-gray-500 rounded-full"></div>
-                                                    <span class="text-xs mt-1 block">پروفایل</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6 text-center">
-                            <button id="generateQr" class="inline-flex items-center px-4 py-2 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg font-medium hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M4 12h.01M4 16h.01M4 8h.01M12 16h4.01M16 12V9m0 0v-3m0 3h-4m4 0h.01" />
-                                </svg>
-                                تولید QR Code
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Logs Card -->
-                <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-                    <div class="bg-gray-50 dark:bg-gray-700/50 p-5 border-b">
-                        <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            لاگ‌های سیستم
-                        </h2>
-                    </div>
-                    <div class="p-6 max-h-96 overflow-y-auto">
-                        <ul id="logList" class="space-y-2">
-                            <li class="log-entry text-gray-500 dark:text-gray-400 text-sm flex">
-                                <span class="text-xs text-gray-400 dark:text-gray-500 w-24">[14:30:22]</span>
-                                <span>سیستم آماده‌سازی شد. لطفاً اطلاعات اپلیکیشن خود را وارد کنید</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- GitHub Actions Section -->
-        <div id="github-actions" class="mt-16 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-8 border border-primary-100 dark:border-gray-700">
-            <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-2 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                        </svg>
-                        ساخت APK با GitHub Actions
-                    </h2>
-                    <p class="text-gray-600 dark:text-gray-300 mt-2">پس از دریافت فایل‌های PWA، می‌توانید از این workflow برای ساخت APK استفاده کنید</p>
-                </div>
-                <button id="copyWorkflow" class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 11h4a2 2 0 012 2v2a2 2 0 01-2 2h-4a2 2 0 01-2-2v-2a2 2 0 012-2z" />
-                    </svg>
-                    کپی کد Workflow
-                </button>
-            </div>
-            
-            <div class="bg-gray-800 rounded-xl overflow-hidden">
-                <pre class="text-sm text-gray-200 p-4 overflow-x-auto"><code id="workflowCode">name: Build APK from PWA
-
-on:
-  workflow_dispatch:
-    inputs:
-      appName:
-        description: 'نام اپلیکیشن'
-        required: true
-        default: 'اپلیکیشن من'
-      packageId:
-        description: 'شناسه پکیج اندروید'
-        required: true
-        default: 'com.example.pwa'
-      siteUrl:
-        description: 'آدرس سایت'
-        required: true
-        default: 'https://example.com'
-      themeColor:
-        description: 'رنگ تم'
-        required: true
-        default: '#7c3aed'
-      backgroundColor:
-        description: 'رنگ پس‌زمینه'
-        required: true
-        default: '#ffffff'
-
-jobs:
-  build-apk:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-
-      - name: Generate TWA
-        run: |
-          bubblewrap init --manifest=https://YOUR_DOMAIN/manifest.json
-          bubblewrap build
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
-        with:
-          name: app-apk
-          path: app-release-signed.apk</code></pre>
-            </div>
-            
-            <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p class="text-sm text-blue-700 dark:text-blue-300 flex items-start">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mt-0.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    برای استفاده از این workflow، فایل‌های ساخته شده را در ریپازیتوری GitHub خود قرار داده و این فایل را به 
-                    <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">.github/workflows/build-apk.yml</code> اضافه کنید
-                </p>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <footer class="mt-16 text-center text-gray-500 dark:text-gray-400 py-8 border-t border-gray-200 dark:border-gray-700">
-            <p>این ابزار به صورت کامل در سمت کلاینت اجرا می‌شود و هیچ داده‌ای را ذخیره نمی‌کند</p>
-            <p class="mt-2 text-sm">طراحی شده با ❤️ برای توسعه‌دهندگان فارسی‌زبان</p>
-        </footer>
-    </div>
-
-    <!-- QR Code Modal -->
-    <div id="qrModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-white">QR Code برای PWA</h3>
-                <button id="closeQrModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <div class="text-center">
-                <div id="qrCodeContainer" class="inline-block p-4 bg-white dark:bg-gray-700 rounded-xl mb-4"></div>
-                <p class="text-gray-600 dark:text-gray-300 mb-4">اسکن کنید تا PWA را روی دستگاه اندرویدی خود نصب کنید</p>
-                <button id="downloadQr" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    دانلود QR Code
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // PWA Builder Application
-        class PwaBuilder {
-            constructor() {
-                this.initializeElements();
-                this.attachEventListeners();
-                this.initializeApp();
-            }
-
-            initializeElements() {
-                // Theme elements
-                this.themeToggle = document.getElementById('themeToggle');
-                this.lightIcon = document.getElementById('lightIcon');
-                this.darkIcon = document.getElementById('darkIcon');
-                
-                // Form elements
-                this.appName = document.getElementById('appName');
-                this.packageId = document.getElementById('packageId');
-                this.startUrl = document.getElementById('startUrl');
-                this.scope = document.getElementById('scope');
-                this.displayMode = document.getElementById('displayMode');
-                this.themeColor = document.getElementById('themeColor');
-                this.themeColorHex = document.getElementById('themeColorHex');
-                this.backgroundColor = document.getElementById('backgroundColor');
-                this.backgroundColorHex = document.getElementById('backgroundColorHex');
-                this.icon512 = document.getElementById('icon512');
-                this.icon512Preview = document.getElementById('icon512Preview');
-                this.icon192 = document.getElementById('icon192');
-                this.icon192Preview = document.getElementById('icon192Preview');
-                this.splashImage = document.getElementById('splashImage');
-                this.splashPreview = document.getElementById('splashPreview');
-                this.categories = document.getElementById('categories');
-                this.shortcuts = document.getElementById('shortcuts');
-                this.screenshots = document.getElementById('screenshots');
-                this.resetForm = document.getElementById('resetForm');
-                this.buildPwa = document.getElementById('buildPwa');
-                
-                // Log and preview elements
-                this.logList = document.getElementById('logList');
-                this.generateQr = document.getElementById('generateQr');
-                this.qrModal = document.getElementById('qrModal');
-                this.closeQrModal = document.getElementById('closeQrModal');
-                this.downloadQr = document.getElementById('downloadQr');
-                this.copyWorkflow = document.getElementById('copyWorkflow');
-                
-                // Preview elements
-                this.previewIconText = document.getElementById('previewIconText');
-                this.previewAppName = document.getElementById('previewAppName');
-                this.previewAppNameLarge = document.getElementById('previewAppNameLarge');
-                this.previewDescription = document.getElementById('previewDescription');
-                this.previewIconLarge = document.getElementById('previewIconLarge');
-                this.previewContent = document.getElementById('previewContent');
-                
-                // Validation elements
-                this.httpsCheck = document.getElementById('httpsCheck');
-                this.manifestCheck = document.getElementById('manifestCheck');
-                this.swCheck = document.getElementById('swCheck');
-            }
-
-            attachEventListeners() {
-                // Theme toggle
-                this.themeToggle.addEventListener('click', () => this.toggleTheme());
-                
-                // Color inputs sync
-                this.themeColor.addEventListener('input', () => this.syncColorInputs('theme'));
-                this.themeColorHex.addEventListener('input', () => this.syncColorInputs('theme'));
-                this.backgroundColor.addEventListener('input', () => this.syncColorInputs('background'));
-                this.backgroundColorHex.addEventListener('input', () => this.syncColorInputs('background'));
-                
-                // File inputs
-                this.icon512.addEventListener('change', (e) => this.handleFileUpload(e, this.icon512Preview));
-                this.icon192.addEventListener('change', (e) => this.handleFileUpload(e, this.icon192Preview));
-                this.splashImage.addEventListener('change', (e) => this.handleFileUpload(e, this.splashPreview));
-                
-                // Helper buttons
-                document.getElementById('generateMaskable').addEventListener('click', () => this.generateMaskableIcon());
-                document.getElementById('generate192').addEventListener('click', () => this.generate192Icon());
-                document.getElementById('generateSplash').addEventListener('click', () => this.generateSplashImage());
-                
-                // Form actions
-                this.resetForm.addEventListener('click', () => this.resetFormHandler());
-                this.buildPwa.addEventListener('click', () => this.buildPwaHandler());
-                
-                // QR Code
-                this.generateQr.addEventListener('click', () => this.generateQrCode());
-                this.closeQrModal.addEventListener('click', () => this.qrModal.classList.add('hidden'));
-                this.downloadQr.addEventListener('click', () => this.downloadQrCode());
-                
-                // Workflow copy
-                this.copyWorkflow.addEventListener('click', () => this.copyWorkflowHandler());
-                
-                // Real-time updates
-                const formInputs = document.querySelectorAll('input, textarea, select');
-                formInputs.forEach(input => {
-                    input.addEventListener('input', () => {
-                        this.saveFormToLocalStorage();
-                        this.validateForm();
-                        this.updatePreview();
-                    });
-                });
-            }
-
-            initializeApp() {
-                this.loadFormFromLocalStorage();
-                this.updatePreview();
-                this.validateForm();
-                this.log('سیستم آماده‌سازی شد. لطفاً اطلاعات اپلیکیشن خود را وارد کنید', 'info');
-            }
-
-            toggleTheme() {
-                const isDark = document.documentElement.classList.toggle('dark');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                
-                if (isDark) {
-                    this.lightIcon.classList.add('hidden');
-                    this.darkIcon.classList.remove('hidden');
-                } else {
-                    this.lightIcon.classList.remove('hidden');
-                    this.darkIcon.classList.add('hidden');
-                }
-            }
-
-            syncColorInputs(type) {
-                if (type === 'theme') {
-                    if (this.themeColorHex.value.match(/^#[0-9A-F]{6}$/i)) {
-                        this.themeColor.value = this.themeColorHex.value;
-                    } else {
-                        this.themeColorHex.value = this.themeColor.value;
-                    }
-                } else {
-                    if (this.backgroundColorHex.value.match(/^#[0-9A-F]{6}$/i)) {
-                        this.backgroundColor.value = this.backgroundColorHex.value;
-                    } else {
-                        this.backgroundColorHex.value = this.backgroundColor.value;
-                    }
-                }
-                this.updatePreview();
-            }
-
-            async handleFileUpload(event, previewElement) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                try {
-                    const imageUrl = URL.createObjectURL(file);
-                    previewElement.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover rounded-xl">`;
-                    
-                    if (previewElement === this.icon512Preview) {
-                        this.validateForm();
-                    }
-                    
-                    this.log(`فایل ${file.name} با موفقیت آپلود شد`, 'ok');
-                } catch (error) {
-                    this.log(`خطا در آپلود فایل: ${error.message}`, 'error');
-                }
-            }
-
-            generateMaskableIcon() {
-                if (!this.icon512.files || !this.icon512.files[0]) {
-                    this.log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
-                    return;
-                }
-                this.log('تولید آیکن maskable...', 'info');
-                // Implementation would go here
-            }
-
-            generate192Icon() {
-                if (!this.icon512.files || !this.icon512.files[0]) {
-                    this.log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
-                    return;
-                }
-                
-                this.log('تولید آیکن 192×192 از 512×512...', 'info');
-                
-                // Create a canvas to resize the image
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 192;
-                canvas.height = 192;
-                
-                const img = new Image();
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0, 192, 192);
-                    this.icon192Preview.innerHTML = `<img src="${canvas.toDataURL()}" class="w-full h-full object-cover rounded-xl">`;
-                    this.log('آیکن 192×192 با موفقیت تولید شد', 'ok');
-                };
-                
-                img.src = URL.createObjectURL(this.icon512.files[0]);
-            }
-
-            generateSplashImage() {
-                if (!this.icon512.files || !this.icon512.files[0]) {
-                    this.log('لطفاً ابتدا آیکن 512×512 را آپلود کنید', 'error');
-                    return;
-                }
-                
-                this.log('تولید تصویر اسپلش از آیکن...', 'info');
-                
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 1024;
-                canvas.height = 500;
-                
-                // Fill background
-                ctx.fillStyle = this.backgroundColor.value;
-                ctx.fillRect(0, 0, 1024, 500);
-                
-                const img = new Image();
-                img.onload = () => {
-                    // Calculate position to center the icon
-                    const iconSize = 200;
-                    const x = (1024 - iconSize) / 2;
-                    const y = (500 - iconSize) / 2;
-                    
-                    ctx.drawImage(img, x, y, iconSize, iconSize);
-                    this.splashPreview.innerHTML = `<img src="${canvas.toDataURL()}" class="w-full h-full object-cover rounded-xl">`;
-                    this.log('تصویر اسپلش با موفقیت تولید شد', 'ok');
-                };
-                
-                img.src = URL.createObjectURL(this.icon512.files[0]);
-            }
-
-            resetFormHandler() {
-                if (!confirm('آیا از پاک‌سازی فرم اطمینان دارید؟')) return;
-                
-                document.querySelectorAll('input, textarea').forEach(element => {
-                    if (element.type !== 'color') {
-                        element.value = '';
-                    }
-                });
-                
-                this.displayMode.value = 'standalone';
-                this.themeColor.value = '#7c3aed';
-                this.themeColorHex.value = '#7c3aed';
-                this.backgroundColor.value = '#ffffff';
-                this.backgroundColorHex.value = '#ffffff';
-                this.scope.value = '/';
-                
-                // Reset previews
-                [this.icon512Preview, this.icon192Preview, this.splashPreview].forEach(preview => {
-                    preview.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    `;
-                });
-                
-                localStorage.removeItem('appBuilderFormData');
-                this.log('فرم با موفقیت پاک‌سازی شد', 'warn');
-                this.updatePreview();
-                this.validateForm();
-            }
-
-            validateForm() {
-                // HTTPS validation
-                if (this.startUrl.value.startsWith('https://')) {
-                    this.setValidationState(this.httpsCheck, true);
-                } else {
-                    this.setValidationState(this.httpsCheck, false);
-                }
-                
-                // Manifest validation
-                if (this.icon512.files && this.icon512.files.length > 0) {
-                    this.setValidationState(this.manifestCheck, true);
-                } else {
-                    this.setValidationState(this.manifestCheck, false);
-                }
-                
-                // Service Worker validation
-                if (this.startUrl.value && this.appName.value) {
-                    this.setValidationState(this.swCheck, true);
-                } else {
-                    this.setValidationState(this.swCheck, false);
-                }
-            }
-
-            setValidationState(element, isValid) {
-                if (isValid) {
-                    element.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
-                    element.classList.remove('fail');
-                    element.classList.add('pass', 'check-animation');
-                } else {
-                    element.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />`;
-                    element.classList.remove('pass');
-                    element.classList.add('fail');
-                }
-            }
-
-            async buildPwaHandler() {
-                // Validate required fields
-                if (!this.appName.value || !this.packageId.value || !this.startUrl.value) {
-                    this.log('لطفاً فیلدهای ضروری را پر کنید', 'error');
-                    return;
-                }
-
-                if (!this.startUrl.value.startsWith('https://')) {
-                    this.log('آدرس سایت باید با https:// شروع شود', 'error');
-                    return;
-                }
-
-                if (!this.icon512.files || this.icon512.files.length === 0) {
-                    this.log('لطفاً آیکن 512×512 را آپلود کنید', 'error');
-                    return;
-                }
-
-                this.log('شروع ساخت فایل‌های PWA...', 'info');
-                
-                try {
-                    // Update progress
-                    this.updateProgress(1);
-                    
-                    // Generate files
-                    await this.generatePwaFiles();
-                    
-                    this.log('فایل‌های PWA با موفقیت ساخته شدند', 'ok');
-                    this.updateProgress(2);
-                    
-                } catch (error) {
-                    this.log(`خطا در ساخت فایل‌ها: ${error.message}`, 'error');
-                }
-            }
-
-            async generatePwaFiles() {
-                const zip = new JSZip();
-                
-                // Create manifest.json
-                const manifest = this.createManifest();
-                zip.file("manifest.json", JSON.stringify(manifest, null, 2));
-                
-                // Create service-worker.js
-                const serviceWorker = this.createServiceWorker();
-                zip.file("service-worker.js", serviceWorker);
-                
-                // Create index.html
-                const indexHtml = this.createIndexHtml();
-                zip.file("index.html", indexHtml);
-                
-                // Add icon files
-                await this.addIconToZip(zip, this.icon512, "icon-512.png");
-                await this.addIconToZip(zip, this.icon192, "icon-192.png");
-                await this.addIconToZip(zip, this.splashImage, "splash.png");
-                
-                // Create README
-                const readme = this.createReadme();
-                zip.file("README.md", readme);
-                
-                // Generate and download ZIP
-                const content = await zip.generateAsync({type: "blob"});
-                const appNameClean = this.appName.value.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'pwa';
-                saveAs(content, `${appNameClean}-pwa-files.zip`);
-                
-                this.log(`فایل ZIP با موفقیت دانلود شد (${Math.round(content.size / 1024)} KB)`, 'ok');
-            }
-
-            createManifest() {
-                const manifest = {
-                    name: this.appName.value,
-                    short_name: this.appName.value.substring(0, 12),
-                    start_url: this.startUrl.value,
-                    scope: this.scope.value || '/',
-                    display: this.displayMode.value,
-                    background_color: this.backgroundColor.value,
-                    theme_color: this.themeColor.value,
-                    icons: [
-                        {
-                            src: "icon-192.png",
-                            sizes: "192x192",
-                            type: "image/png",
-                            purpose: "any"
-                        },
-                        {
-                            src: "icon-512.png",
-                            sizes: "512x512",
-                            type: "image/png",
-                            purpose: "any"
-                        }
-                    ]
-                };
-
-                // Add optional fields
-                if (this.categories.value) {
-                    manifest.categories = this.categories.value.split(',').map(c => c.trim());
-                }
-
-                return manifest;
-            }
-
-            createServiceWorker() {
-                return `
-// Service Worker for ${this.appName.value}
-const CACHE_NAME = 'pwa-cache-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
-];
-
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
-});
-
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
-});
-                `.trim();
-            }
-
-            createIndexHtml() {
-                return `
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${this.appName.value}</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="${this.themeColor.value}">
-    <style>
-        body {
-            font-family: 'Vazirmatn', system-ui;
-            margin: 0;
-            padding: 20px;
-            background: ${this.backgroundColor.value};
-            color: #333;
-            text-align: center;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .app-icon {
-            width: 128px;
-            height: 128px;
-            margin: 0 auto 20px;
-            background: ${this.themeColor.value}15;
-            border-radius: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            font-weight: bold;
-            color: ${this.themeColor.value};
-        }
-        h1 {
-            color: ${this.themeColor.value};
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
-    <div class="app-icon">${this.appName.value.charAt(0)}</div>
-    <h1>${this.appName.value}</h1>
-    <p>این اپلیکیشن با ابزار PWA ساز ساخته شده است</p>
-    
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js');
-        }
-    </script>
-</body>
-</html>
-                `.trim();
-            }
-
-            async addIconToZip(zip, fileInput, fileName) {
-                if (fileInput.files && fileInput.files[0]) {
-                    return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            const base64 = e.target.result.split(',')[1];
-                            zip.file(fileName, base64, {base64: true});
-                            resolve();
-                        };
-                        reader.readAsDataURL(fileInput.files[0]);
-                    });
-                }
-            }
-
-            createReadme() {
-                return `
-# ${this.appName.value}
-
-این اپلیکیشن با استفاده از ابزار PWA Builder ساخته شده است.
-
-## نحوه استقرار
-
-1. تمام فایل‌ها را در هاست خود آپلود کنید
-2. مطمئن شوید سرور شما HTTPS است
-3. فایل‌های زیر باید در ریشه سایت قرار گیرند:
-   - index.html
-   - manifest.json
-   - service-worker.js
-   - icon-192.png
-   - icon-512.png
-
-## اطلاعات اپلیکیشن
-
-- نام: ${this.appName.value}
-- آدرس: ${this.startUrl.value}
-- شناسه پکیج: ${this.packageId.value}
-- رنگ تم: ${this.themeColor.value}
-
-## ساخت APK
-
-برای ساخت APK از فایل GitHub Actions ارائه شده استفاده کنید.
-                `.trim();
-            }
-
-            updateProgress(step) {
-                const steps = document.querySelectorAll('.progress-step');
-                steps.forEach((stepEl, index) => {
-                    stepEl.classList.remove('active', 'completed');
-                    if (index < step) {
-                        stepEl.classList.add('completed');
-                    } else if (index === step) {
-                        stepEl.classList.add('active');
-                    }
-                });
-            }
-
-            updatePreview() {
-                const firstLetter = this.appName.value ? this.appName.value.charAt(0).toUpperCase() : 'A';
-                this.previewIconText.textContent = firstLetter;
-                
-                const displayName = this.appName.value || 'نام اپلیکیشن';
-                this.previewAppName.textContent = displayName;
-                this.previewAppNameLarge.textContent = displayName;
-                
-                this.previewDescription.textContent = this.appName.value ? 
-                    `یک اپلیکیشن پیش‌رونده برای ${this.appName.value}` : 
-                    'یک اپلیکیشن پیش‌رونده حرفه‌ای';
-                
-                this.previewContent.style.backgroundColor = this.backgroundColor.value;
-                this.previewIconLarge.style.backgroundColor = `${this.themeColor.value}15`;
-                this.previewIconLarge.querySelector('span').style.color = this.themeColor.value;
-            }
-
-            generateQrCode() {
-                if (!this.startUrl.value) {
-                    this.log('لطفاً آدرس سایت را وارد کنید', 'error');
-                    return;
-                }
-                
-                this.qrModal.classList.remove('hidden');
-                const qr = qrcode(0, 'M');
-                qr.addData(this.startUrl.value);
-                qr.make();
-                
-                const qrImg = qr.createImgTag(8, 0, this.themeColor.value.replace('#', ''), '#ffffff');
-                document.getElementById('qrCodeContainer').innerHTML = qrImg;
-            }
-
-            downloadQrCode() {
-                const canvas = this.qrModal.querySelector('canvas');
-                if (canvas) {
-                    const pngUrl = canvas.toDataURL("image/png");
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = pngUrl;
-                    downloadLink.download = `${this.appName.value || 'pwa'}-qr.png`;
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
-                    this.log('QR Code با موفقیت دانلود شد', 'ok');
-                }
-            }
-
-            copyWorkflowHandler() {
-                const workflowCode = document.getElementById('workflowCode').textContent;
-                navigator.clipboard.writeText(workflowCode).then(() => {
-                    this.log('کد Workflow با موفقیت کپی شد', 'ok');
-                    
-                    // Visual feedback
-                    const originalText = this.copyWorkflow.innerHTML;
-                    this.copyWorkflow.innerHTML = 'کپی شد!';
-                    setTimeout(() => {
-                        this.copyWorkflow.innerHTML = originalText;
-                    }, 2000);
-                });
-            }
-
-            log(message, level = 'info') {
-                const timestamp = new Date().toLocaleTimeString();
-                const logEntry = document.createElement('li');
-                logEntry.className = 'log-entry text-sm flex';
-                
-                let icon = 'ℹ️';
-                let textColor = 'text-gray-500 dark:text-gray-400';
-                
-                switch(level) {
-                    <!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>اپ‌ساز PWA + APK</title>
-  <meta name="description" content="ابزار حرفه‌ای ساخت PWA و تبدیل آن به APK - ساخت اپلیکیشن‌های پیش‌رونده با یک کلیک" />
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CDN (برای توسعه). برای پروداکشن بهتر است از CLI/PostCSS استفاده کنید. -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: {50:'#f0f9ff',100:'#e0f2fe',200:'#bae6fd',300:'#7dd3fc',400:'#38bdf8',500:'#0ea5e9',600:'#0284c7',700:'#0369a1',800:'#075985',900:'#0c4a6e'}
-          },
-          fontFamily: { vazir: ['Vazirmatn','system-ui'] }
-        }
-      }
-    }
-  </script>
-  <!-- External Libraries -->
+  <!-- کتابخانه‌ها -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-  <!-- Styles -->
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
-    *{box-sizing:border-box}
-    body{font-family:'Vazirmatn',sans-serif;transition:background .3s,color .3s}
-    .card{transition:.3s ease; box-shadow:0 4px 14px rgba(0,0,0,.08)}
-    .card:hover{transform:translateY(-2px); box-shadow:0 10px 28px rgba(0,0,0,.12)}
-    .pwa-check.pass{color:#22c55e;font-weight:700}
-    .pwa-check.fail{color:#ef4444;font-weight:700}
-    .helper-btn{transition:.2s ease}
-    .helper-btn:hover{background:#f3f4f6; transform:translateY(-2px)}
-    .dark .helper-btn:hover{background:#374151}
-    .log-entry{animation:fadeIn .25s ease}
-    @keyframes fadeIn{from{opacity:0; transform:translateY(5px)}to{opacity:1; transform:translateY(0)}}
+    body { font-family: system-ui, sans-serif; }
+    .card { box-shadow: 0 4px 14px rgba(0,0,0,.08); border-radius: 14px; }
+    .pwa-check.pass { color: #16a34a; }
+    .pwa-check.fail { color: #ef4444; }
+    .log-entry { animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
-  <!-- Theme Toggle -->
-  <div class="fixed top-4 left-4 z-50">
-    <button id="themeToggle" class="p-2 rounded-full bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-all">
-      <span id="themeText" class="text-sm">تاریک/روشن</span>
-    </button>
-  </div>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
 
-  <div class="container mx-auto px-4 py-8 max-w-6xl">
-    <header class="text-center mb-10">
-      <h1 class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-blue-500">
-        ابزار ساخت PWA + APK
-      </h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-300">فرم را پر کن، ZIP را دانلود کن؛ سپس با GitHub Actions APK بساز.</p>
-    </header>
+  <div class="container mx-auto p-6 max-w-5xl">
+    <h1 class="text-3xl font-bold mb-6">ابزار ساخت PWA + APK</h1>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Left: Form -->
-      <div class="lg:col-span-2 space-y-6">
-        <!-- Basic Info -->
-        <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-          <div class="bg-primary-500 dark:bg-primary-600 p-5">
-            <h2 class="text-xl font-bold text-white">اطلاعات اپلیکیشن</h2>
+    <!-- فرم -->
+    <div class="card bg-white p-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm mb-1">نام اپلیکیشن *</label>
+          <input id="appName" class="w-full border p-2 rounded" placeholder="فروشگاه من">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">شناسه پکیج *</label>
+          <input id="packageId" class="w-full border p-2 rounded" placeholder="com.example.app">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">آدرس سایت (start_url) *</label>
+          <input id="startUrl" class="w-full border p-2 rounded" placeholder="https://example.com">
+          <p class="text-xs text-gray-500 mt-1">باید با https:// شروع شود</p>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Scope</label>
+          <input id="scope" class="w-full border p-2 rounded" value="/" placeholder="/">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">حالت نمایش</label>
+          <select id="displayMode" class="w-full border p-2 rounded">
+            <option value="standalone">standalone</option>
+            <option value="fullscreen">fullscreen</option>
+            <option value="minimal-ui">minimal-ui</option>
+            <option value="browser">browser</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">رنگ تم</label>
+          <div class="flex gap-2">
+            <input type="color" id="themeColor" class="w-10 h-10 p-0 border-0 cursor-pointer" value="#0ea5e9">
+            <input type="text" id="themeColorHex" class="flex-1 border p-2 rounded" value="#0ea5e9">
           </div>
-          <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label class="block text-sm mb-1">نام اپلیکیشن *</label>
-                <input id="appName" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" placeholder="مثلاً: فروشگاه اینترنتی من" required>
-              </div>
-              <div>
-                <label class="block text-sm mb-1">شناسه پکیج اندروید *</label>
-                <input id="packageId" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" placeholder="مثلاً: com.nima.app" required>
-              </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-3">
-              <div class="md:col-span-2">
-                <label class="block text-sm mb-1">آدرس سایت (start_url) *</label>
-                <input id="startUrl" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" placeholder="https://example.com" required>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">باید با https:// شروع شود</p>
-              </div>
-              <div>
-                <label class="block text-sm mb-1">Scope</label>
-                <input id="scope" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" value="/" placeholder="/">
-              </div>
-              <div>
-                <label class="block text-sm mb-1">حالت نمایش</label>
-                <select id="displayMode" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg">
-                  <option value="standalone">Standalone</option>
-                  <option value="fullscreen">Fullscreen</option>
-                  <option value="minimal-ui">Minimal UI</option>
-                  <option value="browser">Browser</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm mb-1">رنگ تم</label>
-                <div class="flex items-center">
-                  <input type="color" id="themeColor" class="w-10 h-10 p-0 border-0 cursor-pointer" value="#0ea5e9">
-                  <input type="text" id="themeColorHex" class="flex-1 ml-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" value="#0ea5e9">
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm mb-1">رنگ پس‌زمینه</label>
-                <div class="flex items-center">
-                  <input type="color" id="backgroundColor" class="w-10 h-10 p-0 border-0 cursor-pointer" value="#ffffff">
-                  <input type="text" id="backgroundColorHex" class="flex-1 ml-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" value="#ffffff">
-                </div>
-              </div>
-            </div>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">رنگ پس‌زمینه</label>
+          <div class="flex gap-2">
+            <input type="color" id="backgroundColor" class="w-10 h-10 p-0 border-0 cursor-pointer" value="#ffffff">
+            <input type="text" id="backgroundColorHex" class="flex-1 border p-2 rounded" value="#ffffff">
           </div>
         </div>
 
-        <!-- Icons & Images -->
-        <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-          <div class="bg-primary-500 dark:bg-primary-600 p-5">
-            <h2 class="text-xl font-bold text-white">آیکن‌ها و تصاویر</h2>
-          </div>
-          <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div class="text-center">
-                <label class="block text-sm mb-2">آیکن 512×512 *</label>
-                <div class="relative">
-                  <input type="file" id="icon512" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required>
-                  <div class="border-2 border-dashed rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50 hover:border-primary-500 transition">
-                    <div id="icon512Preview" class="w-24 h-24 mx-auto mb-3 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center overflow-hidden">
-                      <span class="text-gray-500">بدون فایل</span>
-                    </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">PNG یا JPG (512×512)</p>
-                  </div>
-                </div>
-                <button type="button" id="generateMaskable" class="helper-btn mt-2 text-xs text-primary-600 dark:text-primary-400 font-medium px-3 py-2 border rounded-xl">
-                  تولید آیکن maskable
-                </button>
-              </div>
-              <div class="text-center">
-                <label class="block text-sm mb-2">آیکن 192×192</label>
-                <div class="relative">
-                  <input type="file" id="icon192" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                  <div class="border-2 border-dashed rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50 hover:border-primary-500 transition">
-                    <div id="icon192Preview" class="w-24 h-24 mx-auto mb-3 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center overflow-hidden">
-                      <span class="text-gray-500">بدون فایل</span>
-                    </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">PNG یا JPG (192×192)</p>
-                  </div>
-                </div>
-                <button type="button" id="generate192" class="helper-btn mt-2 text-xs text-primary-600 dark:text-primary-400 font-medium px-3 py-2 border rounded-xl">
-                  تولید از 512
-                </button>
-              </div>
-              <div class="text-center">
-                <label class="block text-sm mb-2">تصویر اسپلش (اختیاری)</label>
-                <div class="relative">
-                  <input type="file" id="splashImage" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                  <div class="border-2 border-dashed rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50 hover:border-primary-500 transition">
-                    <div id="splashPreview" class="w-24 h-24 mx-auto mb-3 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center overflow-hidden">
-                      <span class="text-gray-500">بدون فایل</span>
-                    </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">1024×500 پیشنهادی</p>
-                  </div>
-                </div>
-                <button type="button" id="generateSplash" class="helper-btn mt-2 text-xs text-primary-600 dark:text-primary-400 font-medium px-3 py-2 border rounded-xl">
-                  تولید از آیکن
-                </button>
-              </div>
-            </div>
-          </div>
+        <!-- آیکن‌ها و اسپلش -->
+        <div>
+          <label class="block text-sm mb-1">آیکن 512×512 *</label>
+          <input type="file" id="icon512" accept="image/*" class="w-full">
+          <div id="icon512Preview" class="mt-2 text-sm text-gray-500">بدون فایل</div>
         </div>
-
-        <!-- Advanced -->
-        <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-          <div class="bg-primary-500 dark:bg-primary-600 p-5">
-            <h2 class="text-xl font-bold text-white">تنظیمات پیشرفته</h2>
-          </div>
-          <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label class="block text-sm mb-1">دسته‌بندی‌ها (کاما جدا)</label>
-                <input id="categories" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" placeholder="business, shopping">
-              </div>
-              <div>
-                <label class="block text-sm mb-1">میان‌برها (Shortcuts)</label>
-                <textarea id="shortcuts" rows="3" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" placeholder="نام1|URL1&#10;نام2|URL2"></textarea>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">هر خط: نام|URL</p>
-              </div>
-              <div class="md:col-span-2">
-                <label class="block text-sm mb-1">Screenshots (یک URL در هر خط)</label>
-                <textarea id="screenshots" rows="3" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border rounded-lg" placeholder="https://example.com/s1.png&#10;https://example.com/s2.png"></textarea>
-              </div>
-            </div>
-          </div>
+        <div>
+          <label class="block text-sm mb-1">آیکن 192×192</label>
+          <input type="file" id="icon192" accept="image/*" class="w-full">
+          <div id="icon192Preview" class="mt-2 text-sm text-gray-500">بدون فایل</div>
+          <button id="generate192" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 border rounded">تولید از 512</button>
         </div>
-
-        <!-- Actions -->
-        <div class="flex flex-col sm:flex-row gap-4">
-          <button id="resetForm" class="flex-1 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 font-medium py-3 px-6 rounded-xl transition-all">
-            پاک‌سازی فرم
-          </button>
-          <button id="buildPwa" class="flex-1 bg-gradient-to-r from-primary-600 to-blue-500 hover:from-primary-700 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all">
-            ساخت فایل‌های PWA (ZIP)
-          </button>
+        <div>
+          <label class="block text-sm mb-1">تصویر اسپلش (اختیاری)</label>
+          <input type="file" id="splashImage" accept="image/*" class="w-full">
+          <div id="splashPreview" class="mt-2 text-sm text-gray-500">بدون فایل</div>
+          <button id="generateSplash" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 border rounded">تولید از آیکن</button>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">میان‌برها (Shortcuts)</label>
+          <textarea id="shortcuts" rows="3" class="w-full border p-2 rounded" placeholder="نام1|URL1&#10;نام2|URL2"></textarea>
+          <p class="text-xs text-gray-500 mt-1">هر خط: نام|URL</p>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Screenshots (هر خط یک URL)</label>
+          <textarea id="screenshots" rows="3" class="w-full border p-2 rounded" placeholder="https://example.com/s1.png&#10;https://example.com/s2.png"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">دسته‌بندی‌ها (با کاما جدا)</label>
+          <input id="categories" class="w-full border p-2 rounded" placeholder="business, shopping">
         </div>
       </div>
 
-      <!-- Right: Validation + Preview + Logs -->
-      <div class="lg:col-span-1 space-y-6">
-        <!-- Validation -->
-        <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-          <div class="bg-green-50 dark:bg-green-900/20 p-5 border-l-4 border-green-500">
-            <h2 class="text-lg font-bold text-gray-800 dark:text-white">اعتبارسنجی PWA</h2>
-          </div>
-          <div class="p-6">
-            <ul class="space-y-3">
-              <li class="flex items-start">
-                <svg id="httpsCheck" class="pwa-check fail h-5 w-5 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
-                <div><p class="font-medium">HTTPS معتبر</p><p class="text-sm text-gray-500">باید با https:// شروع شود</p></div>
-              </li>
-              <li class="flex items-start">
-                <svg id="manifestCheck" class="pwa-check fail h-5 w-5 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
-                <div><p class="font-medium">manifest.json</p><p class="text-sm text-gray-500">حداقل آیکن 512×512 لازم است</p></div>
-              </li>
-              <li class="flex items-start">
-                <svg id="swCheck" class="pwa-check pass h-5 w-5 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <div><p class="font-medium">Service Worker</p><p class="text-sm text-gray-500">به‌صورت خودکار تولید می‌شود</p></div>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Live Preview -->
-        <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-          <div class="bg-gray-50 dark:bg-gray-700/50 p-5 border-b">
-            <h2 class="text-lg font-bold text-gray-800 dark:text-white">پیش‌نمایش</h2>
-          </div>
-          <div class="p-6 text-center">
-            <div id="previewIcon" class="w-24 h-24 mx-auto rounded-xl mb-4 bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-              <span id="previewIconLetter" class="text-3xl font-bold text-primary-600 dark:text-primary-400">A</span>
-            </div>
-            <h3 id="previewName" class="text-xl font-bold">نام اپلیکیشن</h3>
-            <p id="previewDesc" class="text-gray-600 dark:text-gray-300">یک اپلیکیشن پیش‌رونده حرفه‌ای</p>
-          </div>
-        </div>
-
-        <!-- Logs -->
-        <div class="card bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-          <div class="bg-gray-50 dark:bg-gray-700/50 p-5 border-b">
-            <h2 class="text-lg font-bold text-gray-800 dark:text-white">لاگ‌های سیستم</h2>
-          </div>
-          <div class="p-6 max-h-96 overflow-y-auto">
-            <ul id="logList" class="space-y-2">
-              <li class="log-entry text-gray-500 dark:text-gray-400 text-sm flex">
-                <span class="text-xs text-gray-400 dark:text-gray-500 w-24">[--:--:--]</span>
-                <span>سیستم آماده‌سازی شد. لطفاً اطلاعات اپلیکیشن را وارد کنید</span>
-              </li>
-            </ul>
-          </div>
-        </div>
+      <div class="mt-4 flex gap-4">
+        <button id="resetForm" class="flex-1 bg-red-200 p-2 rounded">پاک‌سازی فرم</button>
+        <button id="buildPwa" class="flex-1 bg-green-600 text-white p-2 rounded">ساخت فایل‌های PWA (ZIP)</button>
+        <button id="openQr" class="flex-1 bg-indigo-600 text-white p-2 rounded">QR Code</button>
       </div>
     </div>
 
-    <!-- GitHub Actions section -->
-    <section id="github-actions" class="mt-12">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold">ساخت APK با GitHub Actions</h2>
-        <button id="copyWorkflow" class="px-4 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">کپی Workflow</button>
-      </div>
-      <div class="bg-gray-800 rounded-xl overflow-hidden">
-        <pre class="text-sm text-gray-200 p-4 overflow-x-auto"><code id="workflowCode">name: Build APK from PWA
+    <!-- اعتبارسنجی -->
+    <div class="card bg-white p-6 mb-6">
+      <h2 class="font-bold mb-3">اعتبارسنجی PWA</h2>
+      <ul class="space-y-1">
+        <li><span id="httpsCheck" class="pwa-check fail">✖</span> آدرس HTTPS</li>
+        <li><span id="manifestCheck" class="pwa-check fail">✖</span> آیکن 512 موجود</li>
+        <li><span id="swCheck" class="pwa-check pass">✔</span> Service Worker تولید می‌شود</li>
+      </ul>
+    </div>
 
-on:
-  workflow_dispatch:
-    inputs:
-      appName:
-        description: 'نام اپلیکیشن'
-        required: true
-        default: 'اپلیکیشن من'
-      packageId:
-        description: 'شناسه پکیج اندروید'
-        required: true
-        default: 'com.example.pwa'
-      siteUrl:
-        description: 'آدرس سایت'
-        required: true
-        default: 'https://example.com'
-      themeColor:
-        description: 'رنگ تم'
-        required: true
-        default: '#0ea5e9'
-      backgroundColor:
-        description: 'رنگ پس‌زمینه'
-        required: true
-        default: '#ffffff'
-
-jobs:
-  build-apk:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-      - name: Generate TWA
-        run: |
-          bubblewrap init --manifest=https://YOUR_DOMAIN/manifest.json --packageId=\${{ github.event.inputs.packageId }} --name="\${{ github.event.inputs.appName }}"
-          bubblewrap build
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
-        with:
-          name: app-apk
-          path: app-release-signed.apk</code></pre>
+    <!-- پیش‌نمایش -->
+    <div class="card bg-white p-6 mb-6 text-center">
+      <div id="previewIcon" class="w-24 h-24 mx-auto rounded bg-blue-100 flex items-center justify-center">
+        <span id="previewIconLetter" class="text-3xl font-bold text-blue-600">A</span>
       </div>
-    </section>
+      <h3 id="previewName" class="text-xl font-bold mt-2">نام اپلیکیشن</h3>
+      <p id="previewDesc" class="text-gray-600">یک اپلیکیشن پیش‌رونده حرفه‌ای</p>
+    </div>
+
+    <!-- لاگ -->
+    <div class="card bg-white p-6">
+      <h2 class="font-bold mb-3">لاگ‌های سیستم</h2>
+      <ul id="logList" class="text-sm text-gray-700 space-y-1"></ul>
+    </div>
   </div>
 
   <!-- QR Modal -->
-  <div id="qrModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full">
+  <div id="qrModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-bold">QR Code برای PWA</h3>
-        <button id="closeQrModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">×</button>
+        <h3 class="text-lg font-bold">QR Code برای نصب PWA</h3>
+        <button id="closeQr" class="text-gray-500">✕</button>
       </div>
-      <div id="qrCodeContainer" class="inline-block p-4 bg-white dark:bg-gray-700 rounded-xl mb-4"></div>
-      <p class="text-gray-600 dark:text-gray-300 mb-4">اسکن کنید تا PWA را نصب کنید</p>
+      <div id="qrCodeContainer" class="inline-block p-4 bg-white rounded-xl mb-4"></div>
+      <p class="text-gray-600 mb-4">با دوربین گوشی اسکن کنید</p>
       <div class="flex gap-3">
-        <button id="downloadQr" class="px-4 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">دانلود QR Code</button>
-        <button id="generateQr" class="px-4 py-2 text-primary-700 bg-primary-100 rounded-lg hover:bg-primary-200">تولید QR از start_url</button>
+        <button id="downloadQr" class="px-4 py-2 bg-indigo-600 text-white rounded">دانلود QR</button>
       </div>
     </div>
   </div>
@@ -1636,15 +152,7 @@ jobs:
   <script>
     class PwaBuilder {
       constructor() {
-        this.initializeElements();
-        this.attachEventListeners();
-        this.initializeApp();
-      }
-
-      initializeElements() {
-        this.themeToggle = document.getElementById('themeToggle');
-        this.themeText = document.getElementById('themeText');
-
+        // عناصر
         this.appName = document.getElementById('appName');
         this.packageId = document.getElementById('packageId');
         this.startUrl = document.getElementById('startUrl');
@@ -1654,20 +162,15 @@ jobs:
         this.themeColorHex = document.getElementById('themeColorHex');
         this.backgroundColor = document.getElementById('backgroundColor');
         this.backgroundColorHex = document.getElementById('backgroundColorHex');
-
         this.icon512 = document.getElementById('icon512');
-        this.icon512Preview = document.getElementById('icon512Preview');
         this.icon192 = document.getElementById('icon192');
-        this.icon192Preview = document.getElementById('icon192Preview');
         this.splashImage = document.getElementById('splashImage');
+        this.icon512Preview = document.getElementById('icon512Preview');
+        this.icon192Preview = document.getElementById('icon192Preview');
         this.splashPreview = document.getElementById('splashPreview');
-
-        this.categories = document.getElementById('categories');
         this.shortcuts = document.getElementById('shortcuts');
         this.screenshots = document.getElementById('screenshots');
-
-        this.resetFormBtn = document.getElementById('resetForm');
-        this.buildPwaBtn = document.getElementById('buildPwa');
+        this.categories = document.getElementById('categories');
 
         this.httpsCheck = document.getElementById('httpsCheck');
         this.manifestCheck = document.getElementById('manifestCheck');
@@ -1680,86 +183,88 @@ jobs:
 
         this.logList = document.getElementById('logList');
 
-        this.qrModal = document.getElementById('qrModal');
-        this.closeQrModal = document.getElementById('closeQrModal');
-        this.downloadQr = document.getElementById('downloadQr');
-        this.generateQrBtn = document.getElementById('generateQr');
+        this.generate192Btn = document.getElementById('generate192');
+        this.generateSplashBtn = document.getElementById('generateSplash');
+        this.resetFormBtn = document.getElementById('resetForm');
+        this.buildPwaBtn = document.getElementById('buildPwa');
 
-        this.copyWorkflow = document.getElementById('copyWorkflow');
-        this.workflowCode = document.getElementById('workflowCode');
+        this.qrModal = document.getElementById('qrModal');
+        this.openQrBtn = document.getElementById('openQr');
+        this.closeQrBtn = document.getElementById('closeQr');
+        this.qrCodeContainer = document.getElementById('qrCodeContainer');
+        this.downloadQrBtn = document.getElementById('downloadQr');
+
+        // رویدادها
+        document.addEventListener('DOMContentLoaded', () => this.initialize());
       }
 
-      attachEventListeners() {
-        this.themeToggle.addEventListener('click', () => this.toggleTheme());
+      initialize() {
+        // همگام‌سازی رنگ‌ها
+        const hexRe = /^#[0-9A-F]{6}$/i;
+        this.themeColor.addEventListener('input', () => {
+          this.themeColorHex.value = this.themeColor.value;
+          this.updatePreview();
+        });
+        this.themeColorHex.addEventListener('input', () => {
+          if (hexRe.test(this.themeColorHex.value)) this.themeColor.value = this.themeColorHex.value;
+          this.updatePreview();
+        });
+        this.backgroundColor.addEventListener('input', () => {
+          this.backgroundColorHex.value = this.backgroundColor.value;
+          this.updatePreview();
+        });
+        this.backgroundColorHex.addEventListener('input', () => {
+          if (hexRe.test(this.backgroundColorHex.value)) this.backgroundColor.value = this.backgroundColorHex.value;
+          this.updatePreview();
+        });
 
-        this.themeColor.addEventListener('input', () => this.syncColorInputs('theme'));
-        this.themeColorHex.addEventListener('input', () => this.syncColorInputs('theme'));
-        this.backgroundColor.addEventListener('input', () => this.syncColorInputs('background'));
-        this.backgroundColorHex.addEventListener('input', () => this.syncColorInputs('background'));
+        // فایل‌ها
+        this.icon512.addEventListener('change', (e) => this.handleFilePreview(e, this.icon512Preview));
+        this.icon192.addEventListener('change', (e) => this.handleFilePreview(e, this.icon192Preview));
+        this.splashImage.addEventListener('change', (e) => this.handleFilePreview(e, this.splashPreview));
 
-        this.icon512.addEventListener('change', (e) => this.handleFileUpload(e, this.icon512Preview));
-        this.icon192.addEventListener('change', (e) => this.handleFileUpload(e, this.icon192Preview));
-        this.splashImage.addEventListener('change', (e) => this.handleFileUpload(e, this.splashPreview));
-
-        document.getElementById('generate192').addEventListener('click', () => this.generateIcon192());
-        document.getElementById('generateMaskable').addEventListener('click', () => this.generateMaskableIcon());
-        document.getElementById('generateSplash').addEventListener('click', () => this.generateSplashImage());
-
+        // دکمه‌ها
+        this.generate192Btn.addEventListener('click', () => this.generateIcon192());
+        this.generateSplashBtn.addEventListener('click', () => this.generateSplashImage());
         this.resetFormBtn.addEventListener('click', () => this.resetForm());
         this.buildPwaBtn.addEventListener('click', () => this.buildZip());
 
-        this.generateQrBtn.addEventListener('click', () => this.showQr());
-        this.closeQrModal.addEventListener('click', () => this.qrModal.classList.add('hidden'));
-        this.downloadQr.addEventListener('click', () => this.downloadQrImage());
+        // QR
+        this.openQrBtn.addEventListener('click', () => this.openQr());
+        this.closeQrBtn.addEventListener('click', () => this.qrModal.classList.add('hidden'));
+        this.downloadQrBtn.addEventListener('click', () => this.downloadQr());
 
-        this.copyWorkflow.addEventListener('click', () => this.copyWorkflowCode());
-
-        document.querySelectorAll('input, textarea, select').forEach(el => {
-          el.addEventListener('input', () => { this.saveForm(); this.validate(); this.updatePreview(); });
+        // تغییرات فرم → پیش‌نمایش و اعتبارسنجی
+        ['input','change'].forEach(evt => {
+          document.querySelectorAll('input, textarea, select').forEach(el => {
+            el.addEventListener(evt, () => { this.updatePreview(); this.validate(); this.saveForm(); });
+          });
         });
-      }
 
-      initializeApp() {
-        const theme = localStorage.getItem('theme');
-        if (theme === 'dark') document.documentElement.classList.add('dark');
+        // بازیابی فرم
         this.loadForm();
+
+        // شروع
         this.updatePreview();
         this.validate();
-        this.log('سیستم آماده‌سازی شد. لطفاً اطلاعات اپلیکیشن را وارد کنید','info');
+        this.log('سیستم آماده است. فرم را پر کنید.', 'info');
       }
 
-      toggleTheme() {
-        const dark = document.documentElement.classList.toggle('dark');
-        localStorage.setItem('theme', dark ? 'dark' : 'light');
-        this.themeText.textContent = dark ? 'روشن' : 'تاریک';
-      }
-
-      syncColorInputs(type) {
-        const hexRe = /^#[0-9A-F]{6}$/i;
-        if (type === 'theme') {
-          if (hexRe.test(this.themeColorHex.value)) this.themeColor.value = this.themeColorHex.value;
-          else this.themeColorHex.value = this.themeColor.value;
-        } else {
-          if (hexRe.test(this.backgroundColorHex.value)) this.backgroundColor.value = this.backgroundColorHex.value;
-          else this.backgroundColorHex.value = this.backgroundColor.value;
-        }
-        this.updatePreview();
-      }
-
-      async handleFileUpload(event, previewElement) {
-        const file = event.target.files[0];
+      handleFilePreview(e, targetEl) {
+        const file = e.target.files[0];
         if (!file) return;
         const url = URL.createObjectURL(file);
-        previewElement.innerHTML = `<img src="${url}" class="w-full h-full object-cover rounded-xl">`;
-        this.log(`فایل ${file.name} آپلود شد`,'ok');
+        targetEl.innerHTML = `<img src="${url}" class="w-16 h-16 object-cover rounded">`;
+        this.log(`فایل ${file.name} بارگذاری شد`, 'ok');
         this.validate();
       }
 
       updatePreview() {
-        const letter = (this.appName.value || 'A').charAt(0).toUpperCase();
+        const name = this.appName.value || 'نام اپلیکیشن';
+        const letter = name.charAt(0).toUpperCase() || 'A';
         this.previewIconLetter.textContent = letter;
-        this.previewName.textContent = this.appName.value || 'نام اپلیکیشن';
-        this.previewDesc.textContent = this.appName.value ? `یک اپلیکیشن پیش‌رونده برای ${this.appName.value}` : 'یک اپلیکیشن پیش‌رونده حرفه‌ای';
+        this.previewName.textContent = name;
+        this.previewDesc.textContent = this.appName.value ? `یک اپلیکیشن پیش‌رونده برای ${name}` : 'یک اپلیکیشن پیش‌رونده حرفه‌ای';
         this.previewIcon.style.backgroundColor = this.themeColor.value + '15';
         this.previewIconLetter.style.color = this.themeColor.value;
       }
@@ -1769,99 +274,77 @@ jobs:
         this.setCheck(this.httpsCheck, httpsOk);
         const iconOk = (this.icon512.files && this.icon512.files.length > 0) || !!this._icon512DataUrl;
         this.setCheck(this.manifestCheck, iconOk);
-        this.setCheck(this.swCheck, !!this.appName.value && !!this.startUrl.value);
+        const swOk = !!this.appName.value && !!this.startUrl.value;
+        this.setCheck(this.swCheck, swOk);
       }
 
       setCheck(el, ok) {
-        el.innerHTML = ok
-          ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />'
-          : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
+        el.textContent = ok ? '✔' : '✖';
         el.classList.toggle('pass', ok);
         el.classList.toggle('fail', !ok);
       }
 
       generateIcon192() {
-        if (!this.icon512.files || !this.icon512.files[0]) return this.log('ابتدا آیکن 512×512 را آپلود کنید','error');
-        const file = this.icon512.files[0];
+        if (!this.icon512.files || !this.icon512.files[0]) return this.log('ابتدا آیکن 512×512 را آپلود کنید', 'error');
         const img = new Image();
         img.onload = () => {
-          const c = document.createElement('canvas'); c.width=192; c.height=192;
+          const c = document.createElement('canvas'); c.width = 192; c.height = 192;
           const ctx = c.getContext('2d');
-          const scale = Math.min(192/img.width, 192/img.height);
-          const w = img.width*scale, h = img.height*scale;
+          // حفظ نسبت و مرکز
+          const scale = Math.min(192 / img.width, 192 / img.height);
+          const w = img.width * scale, h = img.height * scale;
           ctx.clearRect(0,0,192,192);
-          ctx.drawImage(img,(192-w)/2,(192-h)/2,w,h);
+          ctx.drawImage(img, (192 - w)/2, (192 - h)/2, w, h);
           const dataUrl = c.toDataURL('image/png');
-          this.icon192Preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover rounded-xl">`;
+          this.icon192Preview.innerHTML = `<img src="${dataUrl}" class="w-16 h-16 object-cover rounded">`;
           this._icon192DataUrl = dataUrl;
-          this.log('آیکن 192×192 تولید شد','ok');
-          this.validate();
+          this.log('آیکن 192×192 تولید شد', 'ok');
         };
-        img.src = URL.createObjectURL(file);
-      }
-
-      generateMaskableIcon() {
-        if (!this.icon512.files || !this.icon512.files[0]) return this.log('ابتدا آیکن 512×512 را آپلود کنید','error');
-        const file = this.icon512.files[0];
-        const img = new Image();
-        img.onload = () => {
-          const c = document.createElement('canvas'); c.width=512; c.height=512;
-          const ctx = c.getContext('2d');
-          const scale = Math.min(512/img.width, 512/img.height);
-          const w = img.width*scale, h = img.height*scale;
-          ctx.clearRect(0,0,512,512);
-          ctx.drawImage(img,(512-w)/2,(512-h)/2,w,h);
-          ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=32;
-          ctx.beginPath(); ctx.arc(256,256,224,0,Math.PI*2); ctx.stroke();
-          const dataUrl = c.toDataURL('image/png');
-          this._maskable512DataUrl = dataUrl;
-          this.log('آیکن maskable تولید شد','ok');
-        };
-        img.src = URL.createObjectURL(file);
+        img.src = URL.createObjectURL(this.icon512.files[0]);
       }
 
       generateSplashImage() {
-        if (!this.icon512.files || !this.icon512.files[0]) return this.log('ابتدا آیکن 512×512 را آپلود کنید','error');
-        const file = this.icon512.files[0];
+        if (!this.icon512.files || !this.icon512.files[0]) return this.log('ابتدا آیکن 512×512 را آپلود کنید', 'error');
         const img = new Image();
         img.onload = () => {
-          const c = document.createElement('canvas'); c.width=1024; c.height=500;
+          const c = document.createElement('canvas'); c.width = 1024; c.height = 500;
           const ctx = c.getContext('2d');
           ctx.fillStyle = this.backgroundColor.value; ctx.fillRect(0,0,1024,500);
           const size = 256;
-          ctx.drawImage(img,(1024-size)/2,(500-size)/2,size,size);
+          ctx.drawImage(img, (1024 - size)/2, (500 - size)/2, size, size);
           const dataUrl = c.toDataURL('image/png');
-          this.splashPreview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover rounded-xl">`;
+          this.splashPreview.innerHTML = `<img src="${dataUrl}" class="w-32 h-16 object-cover rounded">`;
           this._splashDataUrl = dataUrl;
-          this.log('اسپلش تولید شد','ok');
+          this.log('اسپلش تولید شد', 'ok');
         };
-        img.src = URL.createObjectURL(file);
+        img.src = URL.createObjectURL(this.icon512.files[0]);
       }
 
       async buildZip() {
-        if (!this.appName.value || !this.packageId.value || !this.startUrl.value) return this.log('فیلدهای ضروری را پر کنید','error');
-        if (!this.startUrl.value.startsWith('https://')) return this.log('آدرس باید با https:// شروع شود','error');
-        if (!this.icon512.files || this.icon512.files.length === 0) return this.log('آیکن 512×512 لازم است','error');
+        if (!this.appName.value || !this.packageId.value || !this.startUrl.value) return this.log('فیلدهای ضروری را پر کنید', 'error');
+        if (!this.startUrl.value.startsWith('https://')) return this.log('آدرس باید با https:// شروع شود', 'error');
+        if (!this.icon512.files || this.icon512.files.length === 0) return this.log('آیکن 512×512 لازم است', 'error');
 
-        this.log('شروع ساخت ZIP...','info');
+        this.log('ساخت ZIP شروع شد...', 'info');
         try {
           const zip = new JSZip();
           zip.file('manifest.json', JSON.stringify(this.createManifest(), null, 2));
           zip.file('service-worker.js', this.createServiceWorker());
           zip.file('index.html', this.createIndexHtml());
 
+          // آیکن‌ها
           await this.addFileToZip(zip, this.icon512, 'icon-512.png');
           if (this.icon192.files && this.icon192.files[0]) {
             await this.addFileToZip(zip, this.icon192, 'icon-192.png');
           } else if (this._icon192DataUrl) {
             await this.addDataUrlToZip(zip, this._icon192DataUrl, 'icon-192.png');
           } else {
-            // fallback: تولید سریع
+            // تولید فوری
             this.generateIcon192();
             if (this._icon192DataUrl) await this.addDataUrlToZip(zip, this._icon192DataUrl, 'icon-192.png');
           }
 
-          if (this._maskable512DataUrl) await this.addDataUrlToZip(zip, this._maskable512DataUrl, 'icon-512-maskable.png');
+          // اسپلش
           if (this.splashImage.files && this.splashImage.files[0]) {
             await this.addFileToZip(zip, this.splashImage, 'splash.png');
           } else if (this._splashDataUrl) {
@@ -1870,30 +353,27 @@ jobs:
 
           zip.file('README.md', this.createReadme());
 
-          const blob = await zip.generateAsync({type:'blob'});
-          const name = (this.appName.value || 'pwa').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+          const blob = await zip.generateAsync({ type: 'blob' });
+          const name = (this.appName.value || 'pwa').replace(/[^a-z0-9]/gi, '_').toLowerCase();
           saveAs(blob, `${name}-pwa.zip`);
-          this.log('ZIP با موفقیت دانلود شد','ok');
+          this.log('ZIP با موفقیت دانلود شد', 'ok');
         } catch (e) {
-          this.log('خطا در ساخت ZIP: '+e.message,'error');
+          this.log('خطا در ساخت ZIP: ' + e.message, 'error');
         }
       }
 
       createManifest() {
-        const shortcuts = (this.shortcuts.value || '').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
-          const [name,url] = l.split('|').map(x=>x.trim());
-          return name && url ? { name, short_name:name, url, icons:[] } : null;
+        const shortcuts = (this.shortcuts.value || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+          const [name, url] = l.split('|').map(x => x.trim());
+          return name && url ? { name, short_name: name, url } : null;
         }).filter(Boolean);
 
-        const screenshots = (this.screenshots.value || '').split('\n').map(u=>u.trim()).filter(u=>/^https?:\/\//.test(u)).map(u=>({ src:u, sizes:'1024x500', type:'image/png' }));
+        const screenshots = (this.screenshots.value || '').split('\n').map(u => u.trim()).filter(u => /^https?:\/\//.test(u)).map(u => ({ src: u, sizes: '1024x500', type: 'image/png' }));
 
         const icons = [
-          { src:'icon-192.png', sizes:'192x192', type:'image/png', purpose:'any' },
-          { src:'icon-512.png', sizes:'512x512', type:'image/png', purpose:'any' }
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
         ];
-        if (this._maskable512DataUrl || (this.icon512.files && this.icon512.files[0])) {
-          icons.push({ src:'icon-512-maskable.png', sizes:'512x512', type:'image/png', purpose:'maskable' });
-        }
 
         const manifest = {
           name: this.appName.value,
@@ -1907,8 +387,9 @@ jobs:
           shortcuts,
           screenshots
         };
+
         if (this.categories.value) {
-          manifest.categories = this.categories.value.split(',').map(c=>c.trim()).filter(Boolean);
+          manifest.categories = this.categories.value.split(',').map(c => c.trim()).filter(Boolean);
         }
         return manifest;
       }
@@ -1943,15 +424,17 @@ self.addEventListener('fetch',e=>{
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="${this.themeColor.value}">
   <style>
-    body{font-family:'Vazirmatn',system-ui;margin:0;padding:20px;background:${this.backgroundColor.value};color:#333;text-align:center;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+    body{font-family:system-ui,sans-serif;margin:0;padding:20px;background:${this.backgroundColor.value};color:#333;text-align:center;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
     .app-icon{width:128px;height:128px;margin:0 auto 20px;background:${this.themeColor.value}15;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:bold;color:${this.themeColor.value}}
     h1{color:${this.themeColor.value};margin-bottom:10px}
+    a{color:${this.themeColor.value}}
   </style>
 </head>
 <body>
   <div class="app-icon">${(this.appName.value || 'A').charAt(0)}</div>
   <h1>${this.appName.value || 'اپ پیش‌رونده'}</h1>
-  <p>این اپلیکیشن با ابزار PWA ساز ساخته شده است</p>
+  <p>این اپلیکیشن با ابزار سازنده PWA ساخته شده است.</p>
+  <p><a href="./manifest.json" target="_blank">مشاهده manifest.json</a></p>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js').catch(console.error);
@@ -1961,57 +444,76 @@ self.addEventListener('fetch',e=>{
 </html>`;
       }
 
+      createReadme() {
+        return `# ${this.appName.value}
+این اپلیکیشن با ابزار PWA Builder ساخته شده است.
+
+## استقرار
+- همه فایل‌ها را روی هاست HTTPS قرار دهید.
+- فایل‌های لازم در ریشه:
+  - index.html
+  - manifest.json
+  - service-worker.js
+  - icon-192.png
+  - icon-512.png
+  - (اختیاری) splash.png
+
+## اطلاعات
+- نام: ${this.appName.value}
+- آدرس: ${this.startUrl.value}
+- پکیج: ${this.packageId.value}
+- رنگ تم: ${this.themeColor.value}
+
+## تبدیل به APK
+از ورک‌فلو GitHub Actions استفاده کنید یا Bubblewrap را روی سیستم نصب کنید.`;
+      }
+
       async addFileToZip(zip, input, name) {
         if (!(input.files && input.files[0])) return;
-        const dataUrl = await new Promise(res => {
+        const dataUrl = await new Promise(resolve => {
           const r = new FileReader();
-          r.onload = e => res(e.target.result);
+          r.onload = e => resolve(e.target.result);
           r.readAsDataURL(input.files[0]);
         });
         const base64 = dataUrl.split(',')[1];
-        zip.file(name, base64, { base64:true });
+        zip.file(name, base64, { base64: true });
       }
 
       async addDataUrlToZip(zip, dataUrl, name) {
         if (!dataUrl) return;
         const base64 = dataUrl.split(',')[1];
-        zip.file(name, base64, { base64:true });
+        zip.file(name, base64, { base64: true });
       }
 
-      showQr() {
-        if (!this.startUrl.value) return this.log('لطفاً آدرس سایت را وارد کنید','error');
-        this.qrModal.classList.remove('hidden');
+      openQr() {
+        if (!this.startUrl.value) return this.log('آدرس سایت را وارد کنید', 'error');
         const qr = qrcode(0, 'M');
         qr.addData(this.startUrl.value);
         qr.make();
         const hex = this.themeColor.value.replace('#','');
         const imgTag = qr.createImgTag(8, 0, hex, 'ffffff');
-        document.getElementById('qrCodeContainer').innerHTML = imgTag;
-        this.log('QR ساخته شد','ok');
+        this.qrCodeContainer.innerHTML = imgTag;
+        this.qrModal.classList.remove('hidden');
+        this.qrModal.classList.add('flex');
+        this.log('QR ساخته شد', 'ok');
       }
 
-      downloadQrImage() {
-        const img = document.querySelector('#qrCodeContainer img');
+      downloadQr() {
+        const img = this.qrCodeContainer.querySelector('img');
         if (img && img.src && img.src.startsWith('data:image')) {
           const a = document.createElement('a');
           a.href = img.src;
           a.download = `${this.appName.value || 'pwa'}-qr.png`;
           document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          this.log('QR دانلود شد','ok');
+          this.log('QR دانلود شد', 'ok');
         } else {
-          this.log('QR برای دانلود آماده نیست','warn');
+          this.log('QR برای دانلود آماده نیست', 'warn');
         }
       }
 
-      copyWorkflowCode() {
-        navigator.clipboard.writeText(this.workflowCode.textContent).then(()=>{
-          this.log('کد Workflow کپی شد','ok');
-        });
-      }
-
       resetForm() {
-        if (!confirm('آیا از پاک‌سازی فرم اطمینان دارید؟')) return;
-        document.querySelectorAll('input, textarea').forEach(el=>{
+        if (!confirm('آیا از پاک‌سازی فرم مطمئن هستید؟')) return;
+        document.querySelectorAll('input, textarea').forEach(el => {
           if (el.type === 'color') return;
           el.value = '';
         });
@@ -2021,13 +523,14 @@ self.addEventListener('fetch',e=>{
         this.backgroundColor.value = '#ffffff';
         this.backgroundColorHex.value = '#ffffff';
         this.scope.value = '/';
-        this.icon512Preview.innerHTML = '<span class="text-gray-500">بدون فایل</span>';
-        this.icon192Preview.innerHTML = '<span class="text-gray-500">بدون فایل</span>';
-        this.splashPreview.innerHTML = '<span class="text-gray-500">بدون فایل</span>';
-        this._icon192DataUrl = null; this._maskable512DataUrl = null; this._splashDataUrl = null;
+        this.icon512Preview.innerHTML = 'بدون فایل';
+        this.icon192Preview.innerHTML = 'بدون فایل';
+        this.splashPreview.innerHTML = 'بدون فایل';
+        this._icon192DataUrl = null;
+        this._splashDataUrl = null;
         localStorage.removeItem('appBuilderFormData');
         this.updatePreview(); this.validate();
-        this.log('فرم پاک شد','warn');
+        this.log('فرم پاک شد', 'warn');
       }
 
       saveForm() {
@@ -2039,9 +542,9 @@ self.addEventListener('fetch',e=>{
           displayMode: this.displayMode.value,
           themeColor: this.themeColor.value,
           backgroundColor: this.backgroundColor.value,
-          categories: this.categories.value,
           shortcuts: this.shortcuts.value,
-          screenshots: this.screenshots.value
+          screenshots: this.screenshots.value,
+          categories: this.categories.value
         };
         localStorage.setItem('appBuilderFormData', JSON.stringify(data));
       }
@@ -2060,30 +563,32 @@ self.addEventListener('fetch',e=>{
           this.themeColorHex.value = d.themeColor || '#0ea5e9';
           this.backgroundColor.value = d.backgroundColor || '#ffffff';
           this.backgroundColorHex.value = d.backgroundColor || '#ffffff';
-          this.categories.value = d.categories || '';
           this.shortcuts.value = d.shortcuts || '';
           this.screenshots.value = d.screenshots || '';
-          this.log('اطلاعات ذخیره‌شده بازیابی شد','ok');
+          this.categories.value = d.categories || '';
+          this.log('اطلاعات ذخیره‌شده بازیابی شد', 'ok');
         } catch {
-          this.log('خطا در بازیابی اطلاعات','error');
+          this.log('خطا در بازیابی اطلاعات', 'error');
         }
       }
 
       log(message, level='info') {
         const ts = new Date().toLocaleTimeString('fa-IR');
         const li = document.createElement('li');
-        li.className = 'log-entry text-sm flex';
-        let icon='ℹ️', color='text-gray-600 dark:text-gray-300';
-        if (level==='ok'){icon='✅'; color='text-green-600 dark:text-green-400'}
-        else if (level==='warn'){icon='⚠️'; color='text-yellow-600 dark:text-yellow-400'}
-        else if (level==='error'){icon='❌'; color='text-red-600 dark:text-red-400'}
-        li.innerHTML = `<span class="text-xs text-gray-400 dark:text-gray-500 w-24">[${ts}]</span><span class="${color}">${icon} ${message}</span>`;
+        li.className = 'log-entry';
+        let color = '#374151';
+        if (level === 'ok') color = '#16a34a';
+        else if (level === 'warn') color = '#ca8a04';
+        else if (level === 'error') color = '#dc2626';
+        li.style.color = color;
+        li.textContent = `[${ts}] ${message}`;
         this.logList.appendChild(li);
         this.logList.scrollTop = this.logList.scrollHeight;
       }
     }
 
-    document.addEventListener('DOMContentLoaded', ()=> new PwaBuilder());
+    // راه‌اندازی
+    document.addEventListener('DOMContentLoaded', () => new PwaBuilder());
   </script>
 </body>
 </html>
