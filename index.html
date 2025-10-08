@@ -2,244 +2,260 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>اپ‌ساز حرفه‌ای (PWA + APK)</title>
+  <title>اپ‌ساز پرو (PWA + APK)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root{--brand:#1f6feb}
-    .glass{backdrop-filter:saturate(1.2) blur(8px); background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,.45))}
-    .dark .glass{background: linear-gradient(180deg, rgba(25,25,28,.65), rgba(25,25,28,.45))}
-    .mono{font-feature-settings:"ss01","cv01";}
-    .card{border:1px solid rgba(0,0,0,.08); border-radius:16px}
-    .dark .card{border-color:rgba(255,255,255,.12)}
-    .tag{background:rgba(31,111,235,.09); color:#1f6feb; border:1px solid rgba(31,111,235,.2); padding:.25rem .5rem; border-radius:.5rem; font-size:.75rem}
-    .btn{background:#1f6feb;color:#fff;border-radius:.75rem;padding:.65rem 1rem}
-    .btn-ghost{background:transparent;color:#1f6feb;border:1px solid rgba(31,111,235,.5);border-radius:.75rem;padding:.65rem 1rem}
-    .btn-secondary{background:#6a737d;color:#fff;border-radius:.75rem;padding:.65rem 1rem}
-    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-    .input{border:1px solid rgba(0,0,0,.15);border-radius:.75rem;padding:.65rem}
-    .dark .input{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.05)}
-    .badge-ok{color:#0b8b36}
-    .badge-warn{color:#a15a00}
-    .preview-card{border-radius:20px; border:1px solid rgba(0,0,0,.08); padding:1rem; display:flex; gap:1rem; align-items:center}
-    .dark .preview-card{border-color:rgba(255,255,255,.12)}
-    .sw-code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
-  </style>
-  <!-- Libraries -->
+  <!-- External libs -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    :root { --brand:#7c3aed; --bg:#0b1020; }
+    .glass { backdrop-filter: saturate(1.2) blur(10px); background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,.4)); border:1px solid rgba(0,0,0,.08) }
+    .dark .glass { background: linear-gradient(180deg, rgba(20,20,26,.65), rgba(20,20,26,.4)); border-color: rgba(255,255,255,.12) }
+    .neo { box-shadow: 8px 8px 20px rgba(0,0,0,.12), -8px -8px 20px rgba(255,255,255,.6); border-radius: 16px; }
+    .dark .neo { box-shadow: 8px 8px 20px rgba(0,0,0,.5), -8px -8px 20px rgba(255,255,255,.03) }
+    .btn { background: var(--brand); color:#fff; border-radius: 12px; padding:.7rem 1rem; transition: transform .08s ease; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-ghost { border:1px solid rgba(124,58,237,.4); color: var(--brand); border-radius:12px; padding:.7rem 1rem; background: transparent }
+    .badge-ok { color: #16a34a; font-weight:700 }
+    .badge-warn { color: #f59e0b; font-weight:700 }
+    .tab { cursor: pointer; padding:.6rem 1rem; border-radius: 10px; border:1px solid transparent }
+    .tab.active { border-color: rgba(124,58,237,.4); color: var(--brand); background: rgba(124,58,237,.08) }
+    .code { font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+  </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 transition-colors">
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
   <div class="max-w-6xl mx-auto p-6">
     <!-- Header -->
-    <div class="glass card p-6 mb-6 flex items-center justify-between">
+    <div class="glass neo p-6 mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">🚀 اپ‌ساز حرفه‌ای (PWA فوری + APK با GitHub Actions)</h1>
-        <p class="text-slate-600 dark:text-slate-300">فرم را پر کن، وب‌اپلیکیشن ZIP همین‌جا دانلود می‌شود. برای APK، ورک‌فلو را با همین ورودی‌ها اجرا کن.</p>
+        <h1 class="text-2xl font-bold">🚀 اپ‌ساز پرو (PWA فوری + APK با GitHub Actions)</h1>
+        <p class="text-sm text-slate-600 dark:text-slate-300">کم‌فایل، حداکثر کارایی. فرم را پر کن، ZIP بساز، و بدون سرور APK تولید کن.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="tag">بدون سرور</span>
-        <button id="toggleTheme" class="btn-ghost">حالت تاریک/روشن</button>
+      <div class="flex items-center gap-3">
+        <button id="toggleTheme" class="btn-ghost">تاریک/روشن</button>
+        <span class="px-3 py-1 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-300/50">نسخه پرو</span>
       </div>
     </div>
 
-    <!-- Main grid -->
+    <!-- Tabs -->
+    <div class="glass neo p-4 mb-4">
+      <div class="flex gap-2">
+        <div class="tab active" data-tab="basic">اطلاعات پایه</div>
+        <div class="tab" data-tab="branding">تصاویر و برندینگ</div>
+        <div class="tab" data-tab="advanced">گزینه‌های پیشرفته</div>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Left column: Form -->
-      <div class="lg:col-span-2 glass card p-6">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">اطلاعات اپلیکیشن</h2>
-        <div class="grid-2">
-          <div>
-            <label class="text-slate-700 dark:text-slate-300">نام اپ</label>
-            <input id="appName" class="input w-full" placeholder="مثلاً: تعمیر تخصصی مبلمان" value="سایت من">
+      <!-- Left: Panels -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Basic panel -->
+        <div id="panel-basic" class="glass neo p-6">
+          <h2 class="text-xl font-semibold mb-4">اطلاعات پایه</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label>نام اپ</label>
+              <input id="appName" class="w-full border rounded p-2" value="اپ من">
+            </div>
+            <div>
+              <label>شناسه پکیج اندروید</label>
+              <input id="packageId" class="w-full border rounded p-2" value="com.example.app">
+            </div>
           </div>
-          <div>
-            <label class="text-slate-700 dark:text-slate-300">شناسه پکیج اندروید</label>
-            <input id="packageId" class="input w-full" placeholder="مثلاً: com.nima.furniture" value="com.example.myapp">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+            <div>
+              <label>آدرس سایت (start_url)</label>
+              <input id="siteUrl" class="w-full border rounded p-2" value="https://example.com">
+            </div>
+            <div>
+              <label>اسکوپ</label>
+              <input id="scope" class="w-full border rounded p-2" value="/">
+            </div>
           </div>
-        </div>
-        <div class="grid-2 mt-3">
-          <div>
-            <label class="text-slate-700 dark:text-slate-300">آدرس سایت (start_url)</label>
-            <input id="siteUrl" class="input w-full" placeholder="https://example.com" value="https://example.com">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+            <div>
+              <label>رنگ تم</label>
+              <input id="themeColor" type="color" class="w-full border rounded p-2" value="#7c3aed">
+            </div>
+            <div>
+              <label>رنگ پس‌زمینه</label>
+              <input id="bgColor" type="color" class="w-full border rounded p-2" value="#ffffff">
+            </div>
+            <div>
+              <label>Display</label>
+              <select id="display" class="w-full border rounded p-2">
+                <option value="standalone">standalone</option>
+                <option value="fullscreen">fullscreen</option>
+                <option value="minimal-ui">minimal-ui</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label class="text-slate-700 dark:text-slate-300">اسکوپ</label>
-            <input id="scope" class="input w-full" placeholder="/" value="/">
+          <div class="mt-3">
+            <label>توضیحات</label>
+            <input id="description" class="w-full border rounded p-2" placeholder="توضیح کوتاه اپ">
           </div>
-        </div>
-        <div class="grid-3 mt-3">
-          <div>
-            <label class="text-slate-700 dark:text-slate-300">رنگ تم</label>
-            <input id="themeColor" type="color" class="input w-full" value="#1f6feb">
+          <div class="mt-4 flex gap-3">
+            <button id="buildPWA" class="btn">ساخت PWA و دانلود ZIP</button>
+            <button id="prepAPK" class="btn-ghost">راهنمای ساخت APK</button>
+            <button id="resetForm" class="btn-ghost">پاک‌سازی</button>
           </div>
-          <div>
-            <label class="text-slate-700 dark:text-slate-300">رنگ پس‌زمینه</label>
-            <input id="bgColor" type="color" class="input w-full" value="#ffffff">
-          </div>
-          <div>
-            <label class="text-slate-700 dark:text-slate-300">Display</label>
-            <select id="display" class="input w-full">
-              <option value="standalone">standalone</option>
-              <option value="fullscreen">fullscreen</option>
-              <option value="minimal-ui">minimal-ui</option>
-            </select>
-          </div>
-        </div>
-        <div class="mt-4">
-          <label class="text-slate-700 dark:text-slate-300">توضیحات</label>
-          <input id="description" class="input w-full" placeholder="توضیح کوتاه اپ">
         </div>
 
-        <!-- Icons & Splash -->
-        <div class="mt-6">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">آیکن‌ها و اسپلش</h3>
-          <div class="grid-3 mt-2">
+        <!-- Branding panel -->
+        <div id="panel-branding" class="glass neo p-6 hidden">
+          <h2 class="text-xl font-semibold mb-4">تصاویر و برندینگ</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label class="text-slate-700 dark:text-slate-300">آیکن 512×512 (PNG)</label>
-              <input id="icon512" type="file" accept="image/png" class="input w-full">
+              <label>آیکن 512×512 (PNG)</label>
+              <input id="icon512" type="file" accept="image/png" class="w-full">
             </div>
             <div>
-              <label class="text-slate-700 dark:text-slate-300">آیکن 192×192 (PNG)</label>
-              <input id="icon192" type="file" accept="image/png" class="input w-full">
+              <label>آیکن 192×192 (PNG)</label>
+              <input id="icon192" type="file" accept="image/png" class="w-full">
             </div>
             <div>
-              <label class="text-slate-700 dark:text-slate-300">اسپلش 1024×500 (PNG)</label>
-              <input id="splash" type="file" accept="image/png" class="input w-full">
+              <label>اسپلش 1024×500 (PNG اختیاری)</label>
+              <input id="splash" type="file" accept="image/png" class="w-full">
             </div>
           </div>
-          <div class="mt-3 grid-3">
+          <div class="mt-4 flex gap-3">
             <button id="genMaskable" class="btn-ghost">ساخت آیکن Maskable</button>
-            <button id="auto192" class="btn-ghost">تولید خودکار 192 از 512</button>
+            <button id="auto192" class="btn-ghost">تولید 192 از 512</button>
             <button id="autoSplash" class="btn-ghost">تولید اسپلش از آیکن</button>
           </div>
         </div>
 
-        <!-- Advanced -->
-        <div class="mt-6">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">گزینه‌های حرفه‌ای</h3>
-          <div class="grid-2 mt-2">
+        <!-- Advanced panel -->
+        <div id="panel-advanced" class="glass neo p-6 hidden">
+          <h2 class="text-xl font-semibold mb-4">گزینه‌های پیشرفته</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="text-slate-700 dark:text-slate-300">Categories (کاما جدا)</label>
-              <input id="categories" class="input w-full" placeholder="business,tools">
+              <label>Categories (کاما جدا)</label>
+              <input id="categories" class="w-full border rounded p-2" placeholder="business,tools">
             </div>
             <div>
-              <label class="text-slate-700 dark:text-slate-300">Screenshots URL (کاما جدا)</label>
-              <input id="screenshots" class="input w-full" placeholder="https://.../shot1.png, https://.../shot2.png">
+              <label>Screenshots URL (کاما جدا)</label>
+              <input id="screenshots" class="w-full border rounded p-2" placeholder="https://.../shot1.png, https://.../shot2.png">
             </div>
           </div>
-          <div class="mt-2">
-            <label class="text-slate-700 dark:text-slate-300">Shortcuts</label>
-            <div class="grid-3">
-              <input id="shortcutName" class="input" placeholder="نام شورتکات">
-              <input id="shortcutUrl" class="input" placeholder="https://example.com/page">
+          <div class="mt-3">
+            <label>Shortcuts</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <input id="shortcutName" class="border rounded p-2" placeholder="نام">
+              <input id="shortcutUrl" class="border rounded p-2" placeholder="https://example.com/page">
               <button id="addShortcut" class="btn-ghost">افزودن</button>
             </div>
-            <ul id="shortcutList" class="mt-2 text-slate-700 dark:text-slate-300"></ul>
+            <ul id="shortcutList" class="mt-2 text-sm"></ul>
           </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="mt-6 flex gap-3">
-          <button id="buildPWA" class="btn">ساخت وب‌اپلیکیشن و دانلود ZIP</button>
-          <button id="prepAPK" class="btn-secondary">راهنمای بیلد APK</button>
-          <button id="resetForm" class="btn-ghost">پاک‌سازی فرم</button>
         </div>
       </div>
 
-      <!-- Right column: Preview & QR & Checks -->
-      <div class="glass card p-6">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">پیش‌نمایش و بررسی‌ها</h2>
-        <div class="preview-card bg-white dark:bg-slate-800">
-          <canvas id="previewIcon" width="96" height="96" class="rounded-2xl border"></canvas>
-          <div>
-            <div id="previewName" class="text-lg font-bold text-slate-900 dark:text-slate-100">سایت من</div>
-            <div id="previewDesc" class="text-slate-600 dark:text-slate-300 text-sm">توضیح اپ نمایش داده می‌شود</div>
-            <div class="mt-2 flex gap-2 items-center">
-              <span class="text-sm">Theme:</span>
-              <div id="previewTheme" class="w-6 h-6 rounded border"></div>
-              <span class="text-sm">BG:</span>
-              <div id="previewBg" class="w-6 h-6 rounded border"></div>
+      <!-- Right: Preview & Checks & QR & Log -->
+      <div class="space-y-6">
+        <div class="glass neo p-6">
+          <h2 class="text-xl font-semibold mb-4">پیش‌نمایش</h2>
+          <div class="flex items-center gap-4">
+            <canvas id="previewIcon" width="96" height="96" class="rounded-2xl border"></canvas>
+            <div>
+              <div id="previewName" class="text-lg font-bold">اپ من</div>
+              <div id="previewDesc" class="text-slate-600 dark:text-slate-300 text-sm">توضیح اپ نمایش داده می‌شود</div>
+              <div class="mt-2 flex items-center gap-2">
+                <span class="text-sm">Theme</span><div id="previewTheme" class="w-6 h-6 rounded border"></div>
+                <span class="text-sm">BG</span><div id="previewBg" class="w-6 h-6 rounded border"></div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="mt-4">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">چک‌لیست PWA</h3>
-          <ul id="checks" class="text-sm space-y-2 text-slate-700 dark:text-slate-300">
+        <div class="glass neo p-6">
+          <h2 class="text-xl font-semibold mb-4">چک‌لیست PWA</h2>
+          <ul class="text-sm space-y-2">
             <li>HTTPS سایت: <span id="checkHttps" class="badge-warn">نامشخص</span></li>
             <li>start_url معتبر: <span id="checkStart" class="badge-warn">نامشخص</span></li>
             <li>آیکن‌ها آماده: <span id="checkIcons" class="badge-warn">نامشخص</span></li>
             <li>رنگ‌ها تنظیم: <span id="checkColors" class="badge-warn">نامشخص</span></li>
-            <li>Service Worker حاضر: <span id="checkSw" class="badge-warn">بله (تولید می‌شود)</span></li>
+            <li>Service Worker حاضر: <span id="checkSw" class="badge-ok">بله (تولید می‌شود)</span></li>
           </ul>
         </div>
 
-        <div class="mt-6">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">QR لینک PWA یا APK</h3>
-          <div class="grid-2">
-            <input id="qrUrl" class="input w-full" placeholder="https://yourdomain.com/pwa/index.html">
+        <div class="glass neo p-6">
+          <h2 class="text-xl font-semibold mb-4">QR لینک PWA یا APK</h2>
+          <div class="flex gap-2">
+            <input id="qrUrl" class="flex-1 border rounded p-2" placeholder="https://yourdomain.com/pwa/index.html">
             <button id="makeQR" class="btn">ساخت QR</button>
           </div>
           <div class="mt-3 flex items-center gap-3">
-            <canvas id="qrCanvas" width="160" height="160" class="rounded-lg bg-white"></canvas>
+            <canvas id="qrCanvas" width="160" height="160" class="rounded-lg bg-white p-2"></canvas>
             <div id="qrText" class="text-sm text-slate-600 dark:text-slate-300"></div>
           </div>
         </div>
 
-        <div class="mt-6">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">لاگ و خروجی</h3>
-          <div id="log" class="text-xs sw-code bg-slate-800 text-slate-100 p-3 rounded-lg h-40 overflow-auto"></div>
+        <div class="glass neo p-6">
+          <h2 class="text-xl font-semibold mb-4">لاگ</h2>
+          <div id="log" class="code bg-slate-900 text-slate-100 p-3 rounded-lg h-48 overflow-auto"></div>
         </div>
       </div>
     </div>
 
-    <div class="text-center text-slate-500 dark:text-slate-400 mt-6 text-sm">
-      ساخته‌شده برای کار حرفه‌ای، بدون وابستگی به سرور. ZIP را روی هاست HTTPS قرار بده؛ APK را از Actions بساز.
+    <div class="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
+      ZIP را روی هاست HTTPS قرار بده؛ برای APK به تب Actions برو. نسخه حرفه‌ای، کم‌فایل و بدون سرور.
     </div>
   </div>
 
 <script>
-/* State & utils */
-const S = { shortcuts: [] };
+/* Utilities */
 const $ = id => document.getElementById(id);
-const log = msg => { const l = $('log'); l.textContent += (msg + '\n'); l.scrollTop = l.scrollHeight; };
-const isHttps = url => { try { const u = new URL(url); return u.protocol === 'https:'; } catch{ return false; } };
+const now = () => new Date().toLocaleTimeString('fa-IR');
+const log = (msg, level='info') => {
+  const prefix = level==='ok' ? '✅' : level==='warn' ? '⚠️' : level==='err' ? '❌' : '🔧';
+  $('log').textContent += `[${now()}] ${prefix} ${msg}\n`;
+  $('log').scrollTop = $('log').scrollHeight;
+};
+const isHttps = url => { try { return new URL(url).protocol === 'https:'; } catch { return false; } };
+const toBlobPNG = c => new Promise(res => c.toBlob(res, 'image/png'));
+const blobToCanvas = async blob => { const bmp = await createImageBitmap(blob); const c = document.createElement('canvas'); c.width=bmp.width; c.height=bmp.height; c.getContext('2d').drawImage(bmp,0,0); return c; };
 const fitToCanvas = async (file, size) => {
   if (!file) return genDefaultIcon(size);
-  const buf = await file.arrayBuffer();
-  const bmp = await createImageBitmap(new Blob([buf]));
+  const bmp = await createImageBitmap(file);
   const c = document.createElement('canvas'); c.width=size; c.height=size;
-  const ctx = c.getContext('2d'); ctx.clearRect(0,0,size,size);
+  const ctx = c.getContext('2d');
   const scale = Math.min(size/bmp.width, size/bmp.height);
   const w = Math.round(bmp.width*scale), h = Math.round(bmp.height*scale);
+  ctx.clearRect(0,0,size,size);
   ctx.drawImage(bmp,(size-w)/2,(size-h)/2,w,h);
-  return await new Promise(res => c.toBlob(res, 'image/png'));
+  return await toBlobPNG(c);
 };
 const genDefaultIcon = async size => {
   const c = document.createElement('canvas'); c.width=size; c.height=size;
   const ctx = c.getContext('2d');
   ctx.fillStyle = $('themeColor').value; ctx.fillRect(0,0,size,size);
-  ctx.fillStyle = '#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.font = `${Math.round(size*0.5)}px system-ui`; ctx.fillText('A', size/2, size/2);
-  return await new Promise(res => c.toBlob(res, 'image/png'));
-};
-const blobToCanvas = async blob => {
-  const bmp = await createImageBitmap(blob);
-  const c = document.createElement('canvas'); c.width=bmp.width; c.height=bmp.height;
-  const ctx = c.getContext('2d'); ctx.drawImage(bmp,0,0);
-  return c;
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `${Math.round(size*0.5)}px system-ui`;
+  ctx.fillText('A', size/2, size/2);
+  return await toBlobPNG(c);
 };
 
 /* Theme toggle */
 $('toggleTheme').addEventListener('click', () => {
-  document.documentElement.classList.toggle('dark');
-  localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+  const root = document.documentElement;
+  const dark = root.classList.toggle('dark');
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
 });
 if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+
+/* Tabs */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    const key = t.dataset.tab;
+    ['basic','branding','advanced'].forEach(id => {
+      $('panel-'+id).classList.toggle('hidden', id!==key);
+    });
+  });
+});
 
 /* Live preview */
 function refreshPreview(){
@@ -256,19 +272,15 @@ function runChecks(){
   const httpsOk = isHttps($('siteUrl').value);
   $('checkHttps').textContent = httpsOk ? 'بله (HTTPS)' : 'خیر';
   $('checkHttps').className = httpsOk ? 'badge-ok' : 'badge-warn';
-
   const startOk = /^https?:\/\/.+/.test($('siteUrl').value);
   $('checkStart').textContent = startOk ? 'بله' : 'خیر';
   $('checkStart').className = startOk ? 'badge-ok' : 'badge-warn';
-
   const iconsOk = ($('icon192').files.length || $('icon512').files.length);
   $('checkIcons').textContent = iconsOk ? 'بله' : 'خیر (از آیکن پیش‌فرض استفاده می‌شود)';
   $('checkIcons').className = iconsOk ? 'badge-ok' : 'badge-warn';
-
   const colorsOk = $('themeColor').value && $('bgColor').value;
   $('checkColors').textContent = colorsOk ? 'بله' : 'خیر';
   $('checkColors').className = colorsOk ? 'badge-ok' : 'badge-warn';
-
   $('checkSw').textContent = 'بله (تولید می‌شود)';
   $('checkSw').className = 'badge-ok';
 }
@@ -276,43 +288,38 @@ function runChecks(){
 runChecks();
 
 /* Shortcuts add/remove */
+const S = { shortcuts: [] };
 $('addShortcut').addEventListener('click', () => {
   const name = $('shortcutName').value.trim();
   const url = $('shortcutUrl').value.trim();
-  if (!name || !url) return;
-  S.shortcuts.push({ name, url, short_name: name, url: url, icons: [] });
+  if (!name || !url) { log('نام یا URL شورتکات خالی است', 'warn'); return; }
+  const item = { name, short_name: name, url, icons: [] };
+  S.shortcuts.push(item);
   const li = document.createElement('li');
   li.textContent = `${name} → ${url}`;
-  const btn = document.createElement('button'); btn.textContent='حذف'; btn.className='btn-ghost ml-2';
-  btn.onclick = () => { S.shortcuts = S.shortcuts.filter(s => s.url!==url); li.remove(); };
+  const btn = document.createElement('button'); btn.textContent = 'حذف'; btn.className = 'btn-ghost ml-2';
+  btn.onclick = () => { S.shortcuts = S.shortcuts.filter(s => s.url !== url); li.remove(); };
   li.appendChild(btn);
   $('shortcutList').appendChild(li);
-  $('shortcutName').value=''; $('shortcutUrl').value='';
+  $('shortcutName').value = ''; $('shortcutUrl').value = '';
 });
 
-/* Icon helpers */
+/* Branding helpers */
 $('genMaskable').addEventListener('click', async () => {
   log('ساخت آیکن maskable از 512...');
   const src = $('icon512').files[0] || null;
   const base = await fitToCanvas(src, 512);
   const canvas = await blobToCanvas(base);
   const ctx = canvas.getContext('2d');
-  // ماسک: حلقه ایمن برای بریدن در دستگاه‌ها
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 32;
-  ctx.beginPath(); ctx.arc(256,256,224,0,Math.PI*2); ctx.stroke();
-  canvas.toBlob(b => {
-    const dl = document.createElement('a');
-    dl.href = URL.createObjectURL(b); dl.download = 'icon-512-maskable.png'; dl.click();
-    log('✅ آیکن maskable آماده و دانلود شد.');
-  }, 'image/png');
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 32; ctx.beginPath(); ctx.arc(256,256,224,0,Math.PI*2); ctx.stroke();
+  canvas.toBlob(b => { const dl = document.createElement('a'); dl.href = URL.createObjectURL(b); dl.download = 'icon-512-maskable.png'; dl.click(); log('آیکن maskable دانلود شد','ok'); }, 'image/png');
 });
 $('auto192').addEventListener('click', async () => {
   log('تولید 192 از 512...');
   const src = $('icon512').files[0] || null;
   const blob = await fitToCanvas(src, 192);
-  const dl = document.createElement('a');
-  dl.href = URL.createObjectURL(blob); dl.download = 'icon-192.png'; dl.click();
-  log('✅ آیکن 192 آماده و دانلود شد.');
+  const dl = document.createElement('a'); dl.href = URL.createObjectURL(blob); dl.download = 'icon-192.png'; dl.click();
+  log('آیکن 192 دانلود شد','ok');
 });
 $('autoSplash').addEventListener('click', async () => {
   log('تولید اسپلش از آیکن...');
@@ -320,60 +327,54 @@ $('autoSplash').addEventListener('click', async () => {
   const icon = await fitToCanvas(src, 256);
   const icCanvas = await blobToCanvas(icon);
   const c = document.createElement('canvas'); c.width=1024; c.height=500;
-  const ctx = c.getContext('2d');
-  const bg = $('bgColor').value; ctx.fillStyle = bg; ctx.fillRect(0,0,1024,500);
-  ctx.drawImage(icCanvas, (1024-256)/2, (500-256)/2, 256, 256);
-  c.toBlob(b => {
-    const dl = document.createElement('a');
-    dl.href = URL.createObjectURL(b); dl.download='splash.png'; dl.click();
-    log('✅ اسپلش آماده و دانلود شد.');
-  }, 'image/png');
+  const ctx = c.getContext('2d'); ctx.fillStyle = $('bgColor').value; ctx.fillRect(0,0,1024,500);
+  ctx.drawImage(icCanvas,(1024-256)/2,(500-256)/2,256,256);
+  c.toBlob(b => { const dl = document.createElement('a'); dl.href = URL.createObjectURL(b); dl.download='splash.png'; dl.click(); log('اسپلش دانلود شد','ok'); }, 'image/png');
 });
 
-/* Preview icon draw */
-(async function updatePreviewIcon(){
+/* Preview icon */
+async function updatePreviewIcon(){
   const icon = await fitToCanvas($('icon512').files[0], 96);
-  const canvas = $('previewIcon');
-  const bmp = await createImageBitmap(icon);
+  const canvas = $('previewIcon'); const bmp = await createImageBitmap(icon);
   const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,96,96); ctx.drawImage(bmp,0,0,96,96);
-})();
-['icon512'].forEach(id => $(id).addEventListener('change', async ()=>{updatePreviewIcon();}));
+}
+$('icon512').addEventListener('change', updatePreviewIcon); updatePreviewIcon();
 
 /* Build ZIP */
 $('buildPWA').addEventListener('click', async () => {
-  log('شروع ساخت ZIP...');
-  const appName = $('appName').value.trim() || 'App';
-  const siteUrl = $('siteUrl').value.trim();
-  const scope = $('scope').value.trim() || '/';
-  const themeColor = $('themeColor').value || '#1f6feb';
-  const bgColor = $('bgColor').value || '#ffffff';
-  const display = $('display').value || 'standalone';
-  const description = $('description').value || '';
-  if (!/^https?:\/\/.+/.test(siteUrl)) { log('❌ آدرس start_url معتبر نیست.'); return; }
+  try {
+    log('شروع ساخت ZIP...');
+    const appName = $('appName').value.trim() || 'App';
+    const siteUrl = $('siteUrl').value.trim(); if (!/^https?:\/\/.+/.test(siteUrl)) { log('آدرس start_url معتبر نیست','err'); return; }
+    const scope = $('scope').value.trim() || '/';
+    const themeColor = $('themeColor').value || '#7c3aed';
+    const bgColor = $('bgColor').value || '#ffffff';
+    const display = $('display').value || 'standalone';
+    const description = $('description').value || '';
 
-  const icon512 = await fitToCanvas($('icon512').files[0], 512);
-  const icon192 = await fitToCanvas($('icon192').files[0], 192);
-  const splash = $('splash').files[0] || null;
+    const icon512 = await fitToCanvas($('icon512').files[0], 512);
+    const icon192 = await fitToCanvas($('icon192').files[0], 192);
+    const splash = $('splash').files[0] || null;
 
-  const manifest = {
-    name: appName,
-    short_name: appName,
-    start_url: siteUrl,
-    scope, display,
-    background_color: bgColor,
-    theme_color: themeColor,
-    description,
-    icons: [
-      { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
-    ],
-    shortcuts: S.shortcuts,
-    categories: ($('categories').value || '').split(',').map(s => s.trim()).filter(Boolean),
-    screenshots: ($('screenshots').value || '').split(',').map(u => ({ src: u.trim(), sizes: "1024x500", type: "image/png" })).filter(s => /^https?:\/\//.test(s.src))
-  };
+    const manifest = {
+      name: appName,
+      short_name: appName,
+      start_url: siteUrl,
+      scope, display,
+      background_color: bgColor,
+      theme_color: themeColor,
+      description,
+      icons: [
+        { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
+      ],
+      shortcuts: S.shortcuts,
+      categories: ($('categories').value || '').split(',').map(s => s.trim()).filter(Boolean),
+      screenshots: ($('screenshots').value || '').split(',').map(u => ({ src: u.trim(), sizes: "1024x500", type: "image/png" })).filter(s => /^https?:\/\//.test(s.src))
+    };
 
-  const sw = `/* Cache-first with versioning */
+    const sw = `/* Cache-first with versioning */
 const VERSION = '${Date.now()}';
 const CORE = ['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{
@@ -390,7 +391,7 @@ self.addEventListener('fetch',e=>{
   }).catch(()=>r)));
 });`;
 
-  const html = `<!doctype html><html lang="fa"><head>
+    const html = `<!doctype html><html lang="fa"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="./manifest.json"><meta name="theme-color" content="${themeColor}">
 <title>${appName}</title><style>body{font-family:system-ui;margin:20px}</style></head>
@@ -398,52 +399,48 @@ self.addEventListener('fetch',e=>{
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(console.error)}</script>
 </body></html>`;
 
-  const zip = new JSZip();
-  zip.file('manifest.json', JSON.stringify(manifest, null, 2));
-  zip.file('sw.js', sw);
-  zip.file('index.html', html);
-  zip.file('icon-192.png', icon192);
-  zip.file('icon-512.png', icon512);
-  // generate maskable from 512
-  const baseCanvas = await blobToCanvas(icon512);
-  const ctx = baseCanvas.getContext('2d'); ctx.fillStyle='transparent'; // overlay safe ring
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 32; ctx.beginPath(); ctx.arc(256,256,224,0,Math.PI*2); ctx.stroke();
-  const maskBlob = await new Promise(res => baseCanvas.toBlob(res,'image/png'));
-  zip.file('icon-512-maskable.png', maskBlob);
-  if (splash) zip.file('splash.png', splash);
+    const zip = new JSZip();
+    zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+    zip.file('sw.js', sw);
+    zip.file('index.html', html);
+    zip.file('icon-192.png', icon192);
+    zip.file('icon-512.png', icon512);
+    const baseCanvas = await blobToCanvas(icon512);
+    const ctx = baseCanvas.getContext('2d'); ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth = 32; ctx.beginPath(); ctx.arc(256,256,224,0,Math.PI*2); ctx.stroke();
+    const maskBlob = await toBlobPNG(baseCanvas);
+    zip.file('icon-512-maskable.png', maskBlob);
+    if (splash) zip.file('splash.png', splash);
 
-  const readme = `# PWA بسته‌بندی‌شده
+    const readme = `# PWA بسته‌بندی‌شده (نسخه پرو)
 - فایل‌ها را روی هاست HTTPS قرار دهید.
 - manifest.json را مطابق دامنه و مسیر خود تنظیم کنید (start_url, scope).
 - Service worker کش نسخه‌دار دارد؛ با هر انتشار جدید، نسخه تغییر می‌کند.
-- اگر قصد انتشار APK دارید، از ورک‌فلو GitHub Actions استفاده کنید.`;
-  zip.file('README.txt', readme);
+- برای ساخت APK از ورک‌فلو GitHub Actions استفاده کنید.`;
+    zip.file('README.txt', readme);
 
-  const blob = await zip.generateAsync({ type: 'blob' });
-  saveAs(blob, `${appName.replace(/\s+/g,'_')}_PWA.zip`);
-  log('✅ ZIP دانلود شد. آن را روی هاست HTTPS قرار بده.');
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveAs(blob, `${appName.replace(/\s+/g,'_')}_PWA.zip`);
+    log('ZIP دانلود شد. آن را روی هاست HTTPS قرار بده.','ok');
+  } catch (e) {
+    log('خطا در ساخت ZIP: '+e.message, 'err');
+  }
 });
 
 /* APK guide */
 $('prepAPK').addEventListener('click', () => {
-  const appName = $('appName').value.trim();
-  const packageId = $('packageId').value.trim();
-  const siteUrl = $('siteUrl').value.trim();
-  const themeColor = $('themeColor').value;
-  const bgColor = $('bgColor').value;
   const msg = `ورودی‌های اکشن:
-- appName: ${appName}
-- packageId: ${packageId}
-- siteUrl: ${siteUrl}
-- themeColor: ${themeColor}
-- backgroundColor: ${bgColor}
-- manifestUrl: اگر manifest.json روی هاستت پابلیک شد، URL آن را بده. در غیر این صورت اکشن خودش مانفیست می‌سازد.
-- icon192Url/icon512Url/splashUrl (اختیاری): اگر آیکن‌ها را آپلود کردی.
+- appName: ${$('appName').value}
+- packageId: ${$('packageId').value}
+- siteUrl: ${$('siteUrl').value}
+- themeColor: ${$('themeColor').value}
+- backgroundColor: ${$('bgColor').value}
+- manifestUrl: اگر manifest.json را پابلیک کردی، URL بده؛ در غیر این صورت اکشن خودش می‌سازد.
+- icon192Url / icon512Url / splashUrl: اگر آپلود کردی، URL بده.
 
 مراحل:
-1) در ریپو به تب Actions برو و «Build website into APK» را اجرا کن.
-2) ورودی‌ها را وارد کن. منتظر بیلد بمان.
-3) APK را از Artifacts دانلود کن. برای انتشار پایدار، تگ بزن تا Release ساخته شود.`;
+1) به تب Actions ریپو برو و «Build website into APK» را اجرا کن.
+2) ورودی‌ها را وارد کن، منتظر بیلد بمان.
+3) APK را از Artifacts دانلود کن. برای لینک پایدار، Release بساز.`;
   log(msg);
 });
 
@@ -470,7 +467,7 @@ function loadForm(){
   const d = JSON.parse(raw);
   $('appName').value=d.appName||''; $('packageId').value=d.packageId||'';
   $('siteUrl').value=d.siteUrl||''; $('scope').value=d.scope||'/';
-  $('themeColor').value=d.themeColor||'#1f6feb'; $('bgColor').value=d.bgColor||'#ffffff';
+  $('themeColor').value=d.themeColor||'#7c3aed'; $('bgColor').value=d.bgColor||'#ffffff';
   $('display').value=d.display||'standalone'; $('description').value=d.description||'';
   $('categories').value=d.categories||''; $('screenshots').value=d.screenshots||'';
   S.shortcuts = d.shortcuts||[];
@@ -488,11 +485,12 @@ window.addEventListener('load', ()=>{ loadForm(); saveForm(); });
 
 /* QR */
 $('makeQR').addEventListener('click', () => {
-  const url = $('qrUrl').value.trim(); if(!url){ log('URL خالی است.'); return; }
-  QRCode.toCanvas($('qrCanvas'), url, { width: 160 }, err => {
-    if (err) { log('خطا در ساخت QR'); return; }
+  const url = $('qrUrl').value.trim(); if(!url){ log('URL خالی است','warn'); return; }
+  const color = $('themeColor').value;
+  QRCode.toCanvas($('qrCanvas'), url, { width: 160, color: { dark: color, light: '#ffffff' } }, err => {
+    if (err) { log('خطا در ساخت QR','err'); return; }
     $('qrText').textContent = url;
-    log('✅ QR ساخته شد.');
+    log('QR ساخته شد','ok');
   });
 });
 </script>
