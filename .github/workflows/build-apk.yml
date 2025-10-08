@@ -1,4 +1,4 @@
-name: Build website into APK (PWA/TWA)
+name: Build website into APK (Pro TWA)
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
         description: 'نام اپ'
         required: true
       packageId:
-        description: 'شناسه پکیج اندروید (مثلاً com.example.myapp)'
+        description: 'شناسه پکیج اندروید (مثلاً com.example.app)'
         required: true
       siteUrl:
         description: 'آدرس سایت (start_url)'
@@ -15,7 +15,7 @@ on:
       themeColor:
         description: 'رنگ تم (hex)'
         required: true
-        default: '#1f6feb'
+        default: '#7c3aed'
       backgroundColor:
         description: 'رنگ پس‌زمینه (hex)'
         required: true
@@ -36,16 +36,16 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-
     steps:
       - name: Prepare workspace
         run: |
           set -e
+          echo "🔧 Preparing workspace"
           mkdir -p workspace && cd workspace
           sudo apt-get update && sudo apt-get install -y curl imagemagick
 
           if [ -z "${{ github.event.inputs.manifestUrl }}" ]; then
-            echo "Generating manifest.json..."
+            echo "📝 Generating manifest.json..."
             cat > manifest.json << 'JSON'
             {
               "name": "APP_NAME",
@@ -56,8 +56,8 @@ jobs:
               "background_color": "BG_COLOR",
               "theme_color": "THEME_COLOR",
               "icons": [
-                { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-                { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+                { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+                { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
                 { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
               ]
             }
@@ -67,26 +67,30 @@ JSON
             sed -i "s|BG_COLOR|${{ github.event.inputs.backgroundColor }}|g" manifest.json
             sed -i "s|THEME_COLOR|${{ github.event.inputs.themeColor }}|g" manifest.json
 
-            # Default icons
+            echo "🖼️ Generating default icons..."
             convert -size 192x192 xc:${{ github.event.inputs.themeColor }} -gravity center -fill white -pointsize 72 -draw "text 0,0 'A'" icon-192.png
             convert -size 512x512 xc:${{ github.event.inputs.themeColor }} -gravity center -fill white -pointsize 180 -draw "text 0,0 'A'" icon-512.png
-            # Maskable ring overlay
             convert icon-512.png -stroke "rgba(255,255,255,0.25)" -strokewidth 32 -fill none -draw "circle 256,256 256,32" icon-512-maskable.png
 
             [ -n "${{ github.event.inputs.icon192Url }}" ] && curl -L "${{ github.event.inputs.icon192Url }}" -o icon-192.png || true
             [ -n "${{ github.event.inputs.icon512Url }}" ] && curl -L "${{ github.event.inputs.icon512Url }}" -o icon-512.png || true
             [ -n "${{ github.event.inputs.splashUrl }}" ] && curl -L "${{ github.event.inputs.splashUrl }}" -o splash.png || true
           else
-            echo "Using manifest from URL..."
+            echo "🌐 Using manifest from URL"
             curl -L "${{ github.event.inputs.manifestUrl }}" -o manifest.json
             [ -n "${{ github.event.inputs.icon192Url }}" ] && curl -L "${{ github.event.inputs.icon192Url }}" -o icon-192.png || true
             [ -n "${{ github.event.inputs.icon512Url }}" ] && curl -L "${{ github.event.inputs.icon512Url }}" -o icon-512.png || true
             [ -n "${{ github.event.inputs.splashUrl }}" ] && curl -L "${{ github.event.inputs.splashUrl }}" -o splash.png || true
+            # اگر مانفیست شامل maskable نیست، می‌سازیم
+            if [ ! -f icon-512-maskable.png ] && [ -f icon-512.png ]; then
+              convert icon-512.png -stroke "rgba(255,255,255,0.25)" -strokewidth 32 -fill none -draw "circle 256,256 256,32" icon-512-maskable.png
+            fi
           fi
 
-          # Minimal HTML & SW for Bubblewrap
+          echo "🧩 Creating minimal PWA files"
           cat > index.html << 'HTML'
-          <!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="./manifest.json"><title>PWA</title></head>
+          <!doctype html><html><head><meta charset="utf-8">
+          <link rel="manifest" href="./manifest.json"><title>PWA</title></head>
           <body><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}</script></body></html>
 HTML
           cat > sw.js << 'JS'
@@ -108,16 +112,19 @@ JS
       - name: Generate Android project
         working-directory: workspace
         run: |
+          echo "🏗️ Bubblewrap init"
           bubblewrap init --manifest=manifest.json --packageId="${{ github.event.inputs.packageId }}" --name="${{ github.event.inputs.appName }}"
-          # Place splash if provided (best-effort)
           if [ -f splash.png ]; then
+            echo "🖼️ Inserting splash into Android resources"
             mkdir -p app/src/main/res/drawable-nodpi
             cp splash.png app/src/main/res/drawable-nodpi/splash.png || true
           fi
 
       - name: Build APK
         working-directory: workspace
-        run: bubblewrap build
+        run: |
+          echo "⚙️ Building APK"
+          bubblewrap build
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v3
@@ -131,6 +138,7 @@ JS
         if: ${{ secrets.KEYSTORE_BASE64 && secrets.KEYSTORE_PASSWORD && secrets.ALIAS_NAME }}
         working-directory: workspace
         run: |
+          echo "🔐 Signing APK (optional)"
           echo "$KEYSTORE_BASE64" | base64 -d > my-release-key.jks
           if [ -f app-release-unsigned.apk ]; then
             jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
