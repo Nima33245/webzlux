@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="fa">
+<head>
+  <meta charset="utf-8">
+  <title>ابزار تبدیل سایت به اپلیکیشن (PWA + APK)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f7f7f9;margin:0;padding:0}
+    .wrap{max-width:960px;margin:40px auto;padding:0 20px}
+    .card{background:#fff;border:1px solid #e6e6e9;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+    h1{font-size:24px;margin-bottom:14px}
+    label{display:block;margin:10px 0 6px;font-weight:600}
+    input[type="text"],input[type="url"],input[type="color"]{width:100%;padding:10px;border:1px solid #ddd;border-radius:10px}
+    input[type="file"]{width:100%}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .btn{display:inline-block;background:#1f6feb;color:#fff;border:none;border-radius:10px;padding:12px 16px;cursor:pointer}
+    .btn.secondary{background:#6a737d}
+    .btn.success{background:#0b8b36}
+    .hint{color:#666;font-size:13px}
+    .out{white-space:pre-wrap;background:#0b1020;color:#e6edf3;padding:12px;border-radius:12px;overflow:auto}
+    .ok{color:#0b8b36;font-weight:700}
+    .warn{color:#a15a00;font-weight:700}
+    .qr{display:flex;align-items:center;gap:14px;margin-top:10px}
+    canvas.qr{border:1px solid #ddd;border-radius:10px;background:#fff}
+    .footer{color:#666;font-size:12px;text-align:center;margin-top:12px}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>🚀 تبدیل سایت به اپلیکیشن (PWA فوری + APK با GitHub Actions)</h1>
+      <p class="hint">فرم را پر کن، «ساخت وب‌اپلیکیشن» را بزن—فایل ZIP آماده نصب (PWA) همین‌جا دانلود می‌شود. برای APK، همان ورودی‌ها در اکشن بیلد استفاده می‌شوند.</p>
+    </div>
+
+    <div class="card">
+      <form id="appForm">
+        <label>نام اپ</label>
+        <input type="text" id="appName" required placeholder="مثلاً: تعمیر تخصصی مبلمان">
+
+        <label>شناسه پکیج اندروید</label>
+        <input type="text" id="packageId" required placeholder="مثلاً: com.nima.furniture">
+
+        <label>آدرس سایت (start_url)</label>
+        <input type="url" id="siteUrl" required placeholder="https://example.com">
+
+        <div class="row">
+          <div>
+            <label>رنگ تم</label>
+            <input type="color" id="themeColor" value="#e53935">
+          </div>
+          <div>
+            <label>رنگ پس‌زمینه</label>
+            <input type="color" id="bgColor" value="#ffffff">
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>آیکن 192px (PNG)</label>
+            <input type="file" id="icon192" accept="image/png">
+          </div>
+          <div>
+            <label>آیکن 512px (PNG)</label>
+            <input type="file" id="icon512" accept="image/png">
+          </div>
+        </div>
+
+        <label>اسپلش اسکرین (اختیاری، PNG)</label>
+        <input type="file" id="splash" accept="image/png">
+
+        <div class="row" style="margin-top:14px">
+          <button type="button" class="btn" id="buildPWA">ساخت وب‌اپلیکیشن و دانلود ZIP</button>
+          <button type="button" class="btn secondary" id="prepAPK">راهنمای بیلد APK (GitHub Actions)</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>🔗 QR کد برای نصب/نمایش</h2>
+      <p class="hint">بعد از آپلود ZIP روی هاست HTTPS خودت، لینک صفحه PWA را وارد کن تا QR ساخته شود.</p>
+      <div class="row">
+        <input type="url" id="pwaUrl" placeholder="https://yourdomain.com/pwa/index.html">
+        <button class="btn success" id="makeQR">ساخت QR</button>
+      </div>
+      <div class="qr">
+        <canvas id="qrCanvas" class="qr" width="180" height="180"></canvas>
+        <div>
+          <div class="hint">این QR را برای نصب سریع به مشتری بده.</div>
+          <div id="qrLink" class="hint"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="out" id="log"></div>
+      <p class="footer">PWA فوراً و بدون سرور ساخته می‌شود. APK با Bubblewrap در GitHub Actions ساخته و به‌صورت Artifact/Release قابل دانلود است.</p>
+    </div>
+  </div>
+
+<script>
+const log = (msg, cls) => {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.textContent = msg;
+  if (cls) line.className = cls;
+  el.appendChild(line);
+};
+
+async function fileToPng(file, size) {
+  if (!file) return generateDefaultIcon(size);
+  const bitmap = await createImageBitmap(await file.arrayBuffer());
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const scale = Math.min(size/bitmap.width, size/bitmap.height);
+  const w = bitmap.width * scale, h = bitmap.height * scale;
+  ctx.clearRect(0,0,size,size);
+  ctx.drawImage(bitmap, (size-w)/2, (size-h)/2, w, h);
+  return await new Promise(res => canvas.toBlob(res, 'image/png'));
+}
+
+async function generateDefaultIcon(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = document.getElementById('themeColor').value;
+  ctx.fillRect(0,0,size,size);
+  ctx.fillStyle = '#fff';
+  ctx.font = `${Math.round(size*0.5)}px system-ui`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('A', size/2, size/2);
+  return await new Promise(res => canvas.toBlob(res, 'image/png'));
+}
+
+document.getElementById('buildPWA').addEventListener('click', async () => {
+  document.getElementById('log').textContent = '';
+  const appName = document.getElementById('appName').value.trim();
+  const siteUrl = document.getElementById('siteUrl').value.trim();
+  const themeColor = document.getElementById('themeColor').value;
+  const bgColor = document.getElementById('bgColor').value;
+  if (!appName || !siteUrl) { log('لطفاً نام اپ و آدرس سایت را وارد کن.', 'warn'); return; }
+
+  log('ساخت فایل‌های PWA شروع شد...');
+  const icon192File = document.getElementById('icon192').files[0];
+  const icon512File = document.getElementById('icon512').files[0];
+  const splashFile = document.getElementById('splash').files[0];
+
+  const icon192 = await fileToPng(icon192File, 192);
+  const icon512 = await fileToPng(icon512File, 512);
+  const splash = splashFile ? splashFile : null;
+
+  const manifest = {
+    name: appName,
+    short_name: appName,
+    start_url: siteUrl,
+    scope: "/",
+    display: "standalone",
+    background_color: bgColor,
+    theme_color: themeColor,
+    icons: [
+      { src: "icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "icon-512.png", sizes: "512x512", type: "image/png" }
+    ]
+  };
+
+  const sw = `self.addEventListener('install',e=>{
+  e.waitUntil(caches.open('pwa-cache').then(c=>c.addAll(['./','./index.html','./manifest.json'])))
+});
+self.addEventListener('fetch',e=>{
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))
+});`;
+
+  const html = `<!doctype html><html lang="fa"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="${themeColor}">
+<title>${appName}</title>
+<style>body{font-family:system-ui;margin:20px}</style></head>
+<body><h1>${appName}</h1><p>PWA آماده نصب</p>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(console.error)}</script>
+</body></html>`;
+
+  const zip = new JSZip();
+  zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+  zip.file('sw.js', sw);
+  zip.file('index.html', html);
+  zip.file('icon-192.png', icon192);
+  zip.file('icon-512.png', icon512);
+  if (splash) zip.file('splash.png', splash);
+
+  const blob = await zip.generateAsync({type:'blob'});
+  saveAs(blob, `${appName.replace(/\s+/g,'_')}_PWA.zip`);
+  log('✅ وب‌اپلیکیشن ساخته شد و ZIP دانلود شد.', 'ok');
+  log('راهنما: فایل‌ها را روی هاست HTTPS قرار بده؛ لینک نصب (Add to Home Screen) فعال می‌شود.');
+});
+
+document.getElementById('prepAPK').addEventListener('click', () => {
+  const appName = document.getElementById('appName').value.trim();
+  const packageId = document.getElementById('packageId').value.trim();
+  const siteUrl = document.getElementById('siteUrl').value.trim();
+  const themeColor = document.getElementById('themeColor').value;
+  const bgColor = document.getElementById('bgColor').value;
+  if (!appName || !packageId || !siteUrl) { log('لطفاً نام اپ، پکیج آی‌دی و آدرس سایت را وارد کن.', 'warn'); return; }
+
+  const guide = `ورودی‌ها برای GitHub Actions:
+- appName: ${appName}
+- packageId: ${packageId}
+- siteUrl: ${siteUrl}
+- themeColor: ${themeColor}
+- backgroundColor: ${bgColor}
+- manifestUrl: اگر ZIP را روی هاست گذاشتی و manifest.json قابل دسترس است، URL آن را بده؛ اگر نه، اکشن خودش می‌سازد.
+- icon192Url / icon512Url / splashUrl: اگر فایل‌ها را روی هاستت آپلود کردی، URL آن‌ها را وارد کن.
+
+گام‌ها:
+1) به ریپازیتوری برو → Actions → «Build website into APK» → Run workflow.
+2) همین ورودی‌ها را وارد کن.
+3) پس از بیلد، APK از Artifact دانلود می‌شود. برای انتشار حرفه‌ای، تگ بزن تا Release بسازد.`;
+  document.getElementById('log').textContent = '';
+  log('🔧 بیلد APK از طریق GitHub Actions انجام می‌شود. راهنمای سریع زیر را ببین:', 'warn');
+  log(guide);
+});
+
+document.getElementById('makeQR').addEventListener('click', () => {
+  const url = document.getElementById('pwaUrl').value.trim();
+  const canvas = document.getElementById('qrCanvas');
+  const linkEl = document.getElementById('qrLink');
+  if (!url) { log('لینک PWA روی هاستت را وارد کن.', 'warn'); return; }
+  QRCode.toCanvas(canvas, url, { width: 180 }, err => {
+    if (err) { log('خطا در ساخت QR', 'warn'); return; }
+    linkEl.textContent = url;
+    log('✅ QR ساخته شد. آن را برای نصب سریع به مشتری بده.', 'ok');
+  });
+});
+</script>
+</body>
+</html>
