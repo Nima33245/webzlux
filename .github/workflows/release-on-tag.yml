@@ -1,0 +1,51 @@
+name: Release APKs on tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Prepare minimal PWA
+        run: |
+          mkdir -p workspace && cd workspace
+          cat > manifest.json << 'JSON'
+          {"name":"App","short_name":"App","start_url":"https://example.com","scope":"/",
+          "display":"standalone","background_color":"#ffffff","theme_color":"#e53935",
+          "icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},
+                   {"src":"icon-512.png","sizes":"512x512","type":"image/png"}]}
+JSON
+          sudo apt-get update && sudo apt-get install -y imagemagick
+          convert -size 192x192 xc:#e53935 -gravity center -pointsize 72 -fill white -draw "text 0,0 'A'" icon-192.png
+          convert -size 512x512 xc:#e53935 -gravity center -pointsize 180 -fill white -draw "text 0,0 'A'" icon-512.png
+          echo "<!doctype html><html><head><link rel='manifest' href='./manifest.json'></head><body></body></html>" > index.html
+          echo "self.addEventListener('install',e=>{e.waitUntil(caches.open('pwa-cache').then(c=>c.addAll(['./','./index.html','./manifest.json'])))});" > sw.js
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Build APK
+        working-directory: workspace
+        run: |
+          bubblewrap init --manifest=manifest.json --packageId="com.example.app" --name="App"
+          bubblewrap build
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            workspace/app-release-signed.apk
+            workspace/app-release-unsigned.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
