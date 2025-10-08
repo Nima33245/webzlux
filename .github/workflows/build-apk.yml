@@ -1,0 +1,144 @@
+name: Build website into APK (PWA/TWA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      appName:
+        description: 'نام اپلیکیشن'
+        required: true
+      packageId:
+        description: 'شناسه پکیج اندروید (مثلاً com.example.myapp)'
+        required: true
+      siteUrl:
+        description: 'آدرس سایت (start_url)'
+        required: true
+      themeColor:
+        description: 'رنگ تم (hex)'
+        required: true
+        default: '#e53935'
+      backgroundColor:
+        description: 'رنگ پس‌زمینه (hex)'
+        required: true
+        default: '#ffffff'
+      manifestUrl:
+        description: 'آدرس مانفیست آماده (اختیاری)'
+        required: false
+      icon192Url:
+        description: 'آیکن 192px (URL اختیاری)'
+        required: false
+      icon512Url:
+        description: 'آیکن 512px (URL اختیاری)'
+        required: false
+      splashUrl:
+        description: 'تصویر اسپلش (URL اختیاری، PNG)'
+        required: false
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare workspace
+        run: |
+          set -e
+          mkdir -p workspace && cd workspace
+
+          if [ -z "${{ github.event.inputs.manifestUrl }}" ]; then
+            echo "Generating manifest.json..."
+            cat > manifest.json << 'JSON'
+            {
+              "name": "APP_NAME",
+              "short_name": "APP_NAME",
+              "start_url": "SITE_URL",
+              "scope": "/",
+              "display": "standalone",
+              "background_color": "BG_COLOR",
+              "theme_color": "THEME_COLOR",
+              "icons": [
+                { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+                { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+              ]
+            }
+JSON
+            sed -i "s|APP_NAME|${{ github.event.inputs.appName }}|g" manifest.json
+            sed -i "s|SITE_URL|${{ github.event.inputs.siteUrl }}|g" manifest.json
+            sed -i "s|BG_COLOR|${{ github.event.inputs.backgroundColor }}|g" manifest.json
+            sed -i "s|THEME_COLOR|${{ github.event.inputs.themeColor }}|g" manifest.json
+
+            sudo apt-get update && sudo apt-get install -y imagemagick curl
+            convert -size 192x192 xc:${{ github.event.inputs.themeColor }} -gravity center -pointsize 72 -fill white -draw "text 0,0 'A'" icon-192.png
+            convert -size 512x512 xc:${{ github.event.inputs.themeColor }} -gravity center -pointsize 180 -fill white -draw "text 0,0 'A'" icon-512.png
+            [ -n "${{ github.event.inputs.icon192Url }}" ] && curl -L "${{ github.event.inputs.icon192Url }}" -o icon-192.png || true
+            [ -n "${{ github.event.inputs.icon512Url }}" ] && curl -L "${{ github.event.inputs.icon512Url }}" -o icon-512.png || true
+          else
+            echo "Using provided manifestUrl..."
+            sudo apt-get update && sudo apt-get install -y curl
+            curl -L "${{ github.event.inputs.manifestUrl }}" -o manifest.json
+            # تلاش برای دانلود آیکن‌ها اگر مسیرها مشخص باشند (اختیاری و بهترین-effort)
+          fi
+
+          # HTML و SW مینیمال برای سازگاری
+          cat > index.html << 'HTML'
+          <!doctype html><html><head><meta charset="utf-8">
+          <link rel="manifest" href="./manifest.json"><title>PWA</title></head>
+          <body><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}</script></body></html>
+HTML
+          cat > sw.js << 'JS'
+          self.addEventListener('install',e=>{
+            e.waitUntil(caches.open('pwa-cache').then(c=>c.addAll(['./','./index.html','./manifest.json'])))
+          });
+          self.addEventListener('fetch',e=>{
+            e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))
+          });
+JS
+
+          # اسپلش اختیاری (برای درج در پروژه اندروید بعداً)
+          if [ -n "${{ github.event.inputs.splashUrl }}" ]; then
+            curl -L "${{ github.event.inputs.splashUrl }}" -o splash.png || true
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Bubblewrap (Google TWA)
+        run: npm install -g @bubblewrap/cli
+
+      - name: Generate Android project
+        working-directory: workspace
+        run: |
+          bubblewrap init --manifest=manifest.json --packageId="${{ github.event.inputs.packageId }}" --name="${{ github.event.inputs.appName }}"
+          # جایگزینی اسپلش اگر موجود است (در پروژه اندروید Bubblewrap مسیرها ممکن است متفاوت باشند)
+          if [ -f splash.png ]; then
+            # قرار دادن اسپلش در پوشه مناسب (best-effort برای قالب Bubblewrap)
+            mkdir -p app/src/main/res/drawable-nodpi
+            cp splash.png app/src/main/res/drawable-nodpi/splash.png || true
+          fi
+
+      - name: Build APK
+        working-directory: workspace
+        run: bubblewrap build
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.event.inputs.appName }}-apk
+          path: |
+            workspace/app-release-signed.apk
+            workspace/app-release-unsigned.apk
+
+      - name: Sign APK (optional with secrets)
+        if: ${{ secrets.KEYSTORE_BASE64 && secrets.KEYSTORE_PASSWORD && secrets.ALIAS_NAME }}
+        working-directory: workspace
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > my-release-key.jks
+          if [ -f app-release-unsigned.apk ]; then
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore my-release-key.jks -storepass "$KEYSTORE_PASSWORD" \
+              app-release-unsigned.apk "$ALIAS_NAME"
+          fi
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          ALIAS_NAME: ${{ secrets.ALIAS_NAME }}
